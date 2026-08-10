@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Information Model — Shopping Mall Real Estate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<style>
+  :root{
+    --paper:#F5F4EF; --paper-2:#EDEBE3; --ink:#22272C; --ink-soft:#5A6068; --line:#C9C5B8;
+    --accent:#35608D;
+    --shadow:0 1px 2px rgba(34,39,44,.08), 0 6px 18px rgba(34,39,44,.07);
+    --r:6px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--paper);
+    background-image:linear-gradient(var(--line) .5px, transparent .5px), linear-gradient(90deg, var(--line) .5px, transparent .5px);
+    background-size:36px 36px;
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:15px; line-height:1.5;
+  }
+  button{font:inherit; cursor:pointer;}
+  :focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+
+  /* ---------- Title block (drawing-sheet header) ---------- */
+  header{
+    background:var(--paper);
+    border-bottom:2px solid var(--ink);
+    position:sticky; top:0; z-index:40;
+  }
+  .titleblock{
+    max-width:1280px; margin:0 auto; padding:14px 20px 12px;
+    display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; justify-content:space-between;
+  }
+  .tb-left .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-soft);
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:clamp(19px,2.6vw,26px);
+    letter-spacing:-.01em; line-height:1.15;
+  }
+  .tb-meta{
+    display:flex; gap:0; border:1px solid var(--ink); font-family:'IBM Plex Mono',monospace; font-size:11px;
+    background:#fff;
+  }
+  .tb-meta > div{padding:5px 12px; border-right:1px solid var(--ink);}
+  .tb-meta > div:last-child{border-right:none;}
+  .tb-meta .lbl{display:block; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft);}
+  .tb-meta [contenteditable]{min-width:34px; outline-offset:1px;}
+
+  .toolbar{
+    max-width:1280px; margin:0 auto; padding:0 20px 12px;
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  }
+  .search{
+    flex:1 1 220px; max-width:340px; display:flex; align-items:center; gap:8px;
+    background:#fff; border:1px solid var(--ink); padding:6px 10px; border-radius:var(--r);
+  }
+  .search input{border:none; outline:none; font:inherit; width:100%; background:transparent;}
+  .btn{
+    background:#fff; border:1px solid var(--ink); border-radius:var(--r);
+    padding:6px 12px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.02em;
+    transition:background .12s;
+  }
+  .btn:hover{background:var(--paper-2);}
+  .btn.primary{background:var(--ink); color:var(--paper);}
+  .btn.primary:hover{background:#3a4048;}
+  .hint{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-left:auto;}
+
+  /* ---------- Category bands ---------- */
+  main{max-width:1280px; margin:0 auto; padding:26px 20px 80px;}
+  .band{
+    display:grid; grid-template-columns:52px 1fr; margin-bottom:26px;
+    border:1px solid var(--ink); background:rgba(255,255,255,.72); border-radius:var(--r);
+    overflow:hidden; box-shadow:var(--shadow);
+  }
+  .spine{
+    position:relative; border-right:1px solid var(--ink);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .spine::before{content:""; position:absolute; inset:0; background:var(--cat); opacity:.14;}
+  .spine .bar{position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--cat);}
+  .spine .vlabel{
+    writing-mode:vertical-rl; transform:rotate(180deg);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink); white-space:nowrap; padding:12px 0;
+  }
+  .band-body{padding:14px 16px 16px;}
+  .band-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px;}
+  .band-head h2{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700;}
+  .count{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft);}
+  .band-intro{color:var(--ink-soft); font-size:13.5px; max-width:78ch; margin-bottom:14px;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:10px;}
+
+  .card{
+    text-align:left; background:#fff; border:1px solid var(--line); border-left:4px solid var(--cat);
+    border-radius:var(--r); padding:10px 12px 9px; display:flex; flex-direction:column; gap:5px;
+    transition:box-shadow .12s, border-color .12s, transform .12s, opacity .2s;
+  }
+  .card:hover{box-shadow:var(--shadow); border-color:var(--ink);}
+  .card h3{font-family:'Space Grotesk',sans-serif; font-size:14.5px; font-weight:500; line-height:1.25;}
+  .card p{font-size:12.5px; color:var(--ink-soft); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .card .foot{margin-top:auto; padding-top:4px; display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft);}
+  .card.selected{border-color:var(--ink); box-shadow:0 0 0 2px var(--ink), var(--shadow);}
+  .card.dragging{opacity:.35;}
+  .card.tier-secondary{background:var(--paper);}
+  .card.tier-other{background:var(--paper-2);}
+  .band-head .cat-edit{
+    border:1px solid var(--line); background:transparent; border-radius:var(--r);
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft); padding:2px 8px; margin-left:auto;
+  }
+  .band-head .cat-edit:hover{border-color:var(--ink); color:var(--ink);}
+  .add-cat{
+    display:block; width:100%; border:1px dashed var(--ink-soft); background:transparent;
+    border-radius:var(--r); color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; font-size:12px;
+    padding:12px; margin-top:4px;
+  }
+  .add-cat:hover{border-color:var(--ink); color:var(--ink); background:rgba(255,255,255,.6);}
+  dialog#catDialog{border:2px solid var(--ink); border-radius:var(--r); padding:0; width:min(420px,94vw); background:var(--paper);}
+  #catDialog .dhead{padding:10px 14px; border-bottom:1px solid var(--ink); font-family:'Space Grotesk',sans-serif; font-weight:700;}
+  #catDialog .dbody{padding:14px;}
+  #catDialog .drow{display:flex; gap:8px; margin-top:12px;}
+  #catDialog input[type=color]{width:56px; height:32px; padding:2px; border:1px solid var(--line); border-radius:var(--r); background:#fff;}
+  .tier-legend{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft); display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  .tier-legend span{display:inline-flex; align-items:center; gap:4px;}
+  .tier-legend i{width:10px; height:10px; border:1px solid var(--ink-soft); border-radius:2px; display:inline-block;}
+  .card .status{
+    position:absolute; top:5px; right:7px; font-size:13px; line-height:1; z-index:2;
+    background:none; border:none; padding:2px; cursor:pointer;
+  }
+  .card .status.none{opacity:0; transition:opacity .12s;}
+  .card:hover .status.none{opacity:.35;}
+  .card h3{padding-right:16px;}
+  .card{position:relative;}
+  .card.has-meta{margin-bottom:24px;}
+  .card .metabar{
+    position:absolute; left:5px; right:5px; bottom:-23px; box-sizing:border-box;
+    background:var(--paper-2); border:1px solid var(--ink-soft); border-top:none;
+    border-radius:0 0 var(--r) var(--r);
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.02em; color:var(--ink);
+    padding:3px 9px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    display:flex; gap:8px; align-items:center;
+  }
+  .card .metabar .m-sor{color:var(--ink);}
+  .card .metabar .m-owner{color:var(--accent);}
+  .card .metabar .m-data{color:#7E5A9B; text-transform:uppercase;}
+  .card .metabar .msep{color:var(--line);}
+  .card.drop-target, .add-card.drop-target{outline:2px dashed var(--ink); outline-offset:2px;}
+  .card.related{box-shadow:0 0 0 2px var(--cat); border-color:var(--cat);}
+  .card.dim{opacity:.32;}
+  .card.hidden{display:none;}
+  .add-card{
+    border:1px dashed var(--ink-soft); border-radius:var(--r); background:transparent;
+    color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; font-size:12px; min-height:74px;
+  }
+  .add-card:hover{border-color:var(--ink); color:var(--ink); background:rgba(255,255,255,.6);}
+
+  /* ---------- Detail / edit panel ---------- */
+  .panel{
+    position:fixed; top:0; right:0; bottom:0; width:min(420px,100%);
+    background:var(--paper); border-left:2px solid var(--ink); z-index:60;
+    transform:translateX(102%); transition:transform .22s ease; display:flex; flex-direction:column;
+    box-shadow:-10px 0 30px rgba(34,39,44,.15);
+  }
+  .panel.open{transform:translateX(0);}
+  .panel-head{
+    padding:14px 18px; border-bottom:1px solid var(--ink);
+    display:flex; align-items:center; gap:10px;
+  }
+  .cat-dot{width:12px; height:12px; border-radius:50%; background:var(--cat,#888); flex:none; border:1px solid var(--ink);}
+  .panel-head .where{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft);}
+  .panel-head .close{margin-left:auto;}
+  .panel-body{padding:16px 18px 24px; overflow-y:auto; flex:1;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-soft); margin-bottom:4px;
+  }
+  .field input[type=text], .field textarea, .field select{
+    width:100%; font:inherit; font-size:14px; color:var(--ink);
+    background:#fff; border:1px solid var(--line); border-radius:var(--r); padding:8px 10px;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{border-color:var(--ink); outline:none;}
+  .field textarea{resize:vertical; min-height:64px;}
+  #f-name{font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:16px;}
+  .rel-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .section-toggle{
+    width:100%; text-align:left; background:var(--paper-2); border:1px solid var(--line);
+    border-radius:var(--r); padding:8px 12px; margin:6px 0 10px;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink);
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-toggle:hover{border-color:var(--ink);}
+  .section-toggle .chev{transition:transform .15s; display:inline-block;}
+  .section-toggle[aria-expanded="true"] .chev{transform:rotate(90deg);}
+  .section-body{border-left:2px solid var(--line); padding-left:12px; margin-bottom:6px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--ink);
+    border-radius:999px; padding:3px 10px; font-family:'IBM Plex Mono',monospace; font-size:11px;
+  }
+  .chip .dot{width:8px; height:8px; border-radius:50%;}
+  .chip .x{border:none; background:none; font-size:12px; line-height:1; padding:0 0 0 2px; color:var(--ink-soft);}
+  .chip .x:hover{color:#A3341F;}
+  .chip.add-rel{border-style:dashed; color:var(--ink-soft); background:transparent;}
+  .panel-foot{padding:12px 18px; border-top:1px solid var(--line); display:flex; gap:8px;}
+  .btn.danger{border-color:#A3341F; color:#A3341F;}
+  .btn.danger:hover{background:#A3341F; color:#fff;}
+
+  .overlay{position:fixed; inset:0; background:rgba(34,39,44,.25); z-index:50; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .overlay.show{opacity:1; pointer-events:auto;}
+
+  dialog#relPicker{border:2px solid var(--ink); border-radius:var(--r); padding:0; max-width:360px; width:92vw;}
+  dialog::backdrop{background:rgba(34,39,44,.3);}
+  #relPicker .dhead{padding:10px 14px; border-bottom:1px solid var(--line); font-family:'Space Grotesk',sans-serif; font-weight:500;}
+  #relPicker .dlist{max-height:300px; overflow-y:auto; padding:8px;}
+  #relPicker .dlist button{display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:7px 10px; border:none; background:none; border-radius:4px; font-size:13px;}
+  #relPicker .dlist button:hover{background:var(--paper-2);}
+
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%) translateY(80px);
+    background:var(--ink); color:var(--paper); padding:8px 16px; border-radius:var(--r);
+    font-family:'IBM Plex Mono',monospace; font-size:12px; transition:transform .25s; z-index:80;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* ---------- AI assist ---------- */
+  .btn.ai{border-color:#7E5A9B; color:#7E5A9B;}
+  .btn.ai:hover{background:#7E5A9B; color:#fff;}
+  dialog#aiDialog{border:2px solid var(--ink); border-radius:var(--r); padding:0; max-width:560px; width:94vw; background:var(--paper);}
+  #aiDialog .dhead{padding:12px 16px; border-bottom:1px solid var(--ink); font-family:'Space Grotesk',sans-serif; font-weight:700; display:flex; align-items:center; gap:8px;}
+  #aiDialog .dhead .close-d{margin-left:auto;}
+  #aiDialog .dbody{padding:14px 16px 18px; max-height:70vh; overflow-y:auto;}
+  #aiDialog textarea{width:100%; font:inherit; font-size:14px; background:#fff; border:1px solid var(--line); border-radius:var(--r); padding:9px 11px; min-height:70px; resize:vertical;}
+  #aiDialog textarea:focus{border-color:var(--ink); outline:none;}
+  .ai-examples{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px;}
+  .ai-examples button{border:1px dashed var(--ink-soft); background:transparent; border-radius:999px; padding:3px 10px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft);}
+  .ai-examples button:hover{border-color:var(--ink); color:var(--ink);}
+  .ai-status{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin:10px 0; min-height:16px;}
+  .ai-status.err{color:#A3341F;}
+  .proposal{border:1px solid var(--ink); border-left:4px solid var(--cat,#7E5A9B); border-radius:var(--r); background:#fff; padding:10px 12px; margin-bottom:10px;}
+  .proposal h4{font-family:'Space Grotesk',sans-serif; font-size:14.5px; font-weight:500;}
+  .proposal .where{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft);}
+  .proposal p{font-size:12.5px; color:var(--ink-soft); margin:5px 0;}
+  .proposal .prow{display:flex; gap:8px; margin-top:8px;}
+  .proposal.accepted{opacity:.55;}
+  .spin{display:inline-block; width:11px; height:11px; border:2px solid var(--ink-soft); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-1px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ai-field-row{display:flex; gap:8px; align-items:stretch;}
+  .ai-field-row input{flex:1;}
+  .ref-note{
+    margin-top:8px; background:#fff; border:1px solid var(--line); border-left:4px solid #3B7F8C;
+    border-radius:var(--r); padding:10px 12px; font-size:12.5px; color:var(--ink);
+    white-space:pre-wrap; max-height:260px; overflow-y:auto;
+  }
+  .ref-note .src-tag{display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px;}
+
+  /* ---------- Tabs & diagram ---------- */
+  .tabs{max-width:1280px; margin:0 auto; padding:0 20px; display:flex; gap:4px;}
+  .tab{
+    border:1px solid var(--ink); border-bottom:none; border-radius:var(--r) var(--r) 0 0;
+    background:var(--paper-2); padding:6px 16px; font-family:'IBM Plex Mono',monospace; font-size:12px;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); position:relative; top:2px;
+  }
+  .tab.active{background:var(--paper); color:var(--ink); font-weight:500; border-bottom:2px solid var(--paper);}
+  #diagramWrap{max-width:1280px; margin:0 auto; padding:18px 20px 40px;}
+  .dg-toolbar{
+    display:flex; flex-direction:column; gap:8px; margin-bottom:10px;
+    background:rgba(255,255,255,.72); border:1px solid var(--ink); border-radius:var(--r); padding:8px 10px;
+  }
+  .dg-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .dg-row-2{border-top:1px solid var(--line); padding-top:8px;}
+  .dg-chips{display:flex; flex-wrap:wrap; gap:6px; flex:1 1 auto; min-width:0;}
+  .dg-toolbar .lbl{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin-right:2px;}
+  .chip-f{
+    border:1px solid var(--ink); background:#fff; border-radius:999px; padding:3px 11px;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; display:inline-flex; align-items:center; gap:6px;
+  }
+  .chip-f .sw{width:9px; height:9px; border-radius:50%; background:var(--cc,#444);}
+  .chip-f.active{background:var(--ink); color:var(--paper);}
+  .dg-toolbar .sep{width:1px; height:20px; background:var(--line); margin:0 4px;}
+  .dg-toolbar select{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink);
+    background:#fff; border:1px solid var(--ink); border-radius:999px; padding:3px 8px; max-width:170px;
+  }
+  .card .tagline{color:#7E5A9B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;}
+  #cyBox{
+    height:calc(100vh - 265px); min-height:440px; background:#fff;
+    border:1px solid var(--ink); border-radius:var(--r); box-shadow:var(--shadow); position:relative;
+  }
+  #cy{width:100%; height:100%;}
+  #cyMsg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); padding:20px; pointer-events:none;}
+  .dg-hint{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft); margin-top:8px;}
+  dialog#edgeDialog, dialog#nodeDialog{border:2px solid var(--ink); border-radius:var(--r); padding:0; width:min(380px,94vw); background:var(--paper);}
+  dialog#exportDialog{border:2px solid var(--ink); border-radius:var(--r); padding:0; width:min(560px,94vw); background:var(--paper);}
+  #exportDialog .dhead{padding:10px 14px; border-bottom:1px solid var(--ink); font-family:'Space Grotesk',sans-serif; font-weight:700; display:flex; align-items:center;}
+  #exportDialog .dhead .close-d{margin-left:auto;}
+  #exportDialog .dbody{padding:14px;}
+  #exportDialog textarea{width:100%; height:280px; font-family:'IBM Plex Mono',monospace; font-size:11px; background:#fff; border:1px solid var(--line); border-radius:var(--r); padding:8px; resize:vertical;}
+  #exportDialog .drow{display:flex; gap:8px; margin-top:10px;}
+  #exportDialog p{font-size:12px; color:var(--ink-soft); margin-bottom:8px;}
+  #edgeDialog .dhead, #nodeDialog .dhead{padding:10px 14px; border-bottom:1px solid var(--ink); font-family:'Space Grotesk',sans-serif; font-weight:700;}
+  #edgeDialog .dbody, #nodeDialog .dbody{padding:14px;}
+  #edgeDialog .ends{font-family:'IBM Plex Mono',monospace; font-size:11.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  #edgeDialog .ends select{
+    flex:1 1 40%; min-width:120px; font:inherit; font-size:12px; color:var(--ink);
+    background:#fff; border:1px solid var(--line); border-radius:4px; padding:5px 6px;
+  }
+  #edgeDialog .ends select:focus{border-color:var(--ink); outline:none;}
+  #edgeDialog .ends .swap{border:1px solid var(--ink); background:#fff; border-radius:4px; font-size:11px; padding:1px 7px;}
+  #edgeDialog .drow, #nodeDialog .drow{display:flex; gap:8px; margin-top:12px;}
+
+  @media (max-width:640px){
+    .band{grid-template-columns:34px 1fr;}
+    .spine .vlabel{font-size:9px;}
+    .hint{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+  @media print{
+    header .toolbar, .add-card, .panel, .overlay{display:none !important;}
+    body{background:#fff;}
+    .band{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="titleblock">
+    <div class="tb-left">
+      <div class="eyebrow">Enterprise Information Model · Conceptual Level</div>
+      <h1>Shopping Mall Real Estate — Core Concepts</h1>
+    </div>
+    <div class="tb-meta" aria-label="Sheet metadata (editable)">
+      <div><span class="lbl">Sheet</span>EIM-01</div>
+      <div><span class="lbl">Rev</span><span contenteditable="true" spellcheck="false">0.1</span></div>
+      <div><span class="lbl">Date</span><span contenteditable="true" spellcheck="false" id="tbDate"></span></div>
+      <div><span class="lbl">Status</span><span contenteditable="true" spellcheck="false">Draft for review</span></div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="search" placeholder="Filter concepts…" aria-label="Filter concepts">
+    </div>
+    <button class="btn" id="exportBtn">Export JSON</button>
+    <button class="btn" id="importBtn">Import JSON</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <button class="btn" id="printBtn">Print / PDF</button>
+    <button class="btn ai" id="aiBtn">✦ AI assist</button>
+    <span class="hint">Click a concept to inspect &amp; edit · related concepts light up</span>
+  </div>
+  <nav class="tabs" aria-label="Views">
+    <button class="tab active" data-tab="board">Concept board</button>
+    <button class="tab" data-tab="diagram">Diagram</button>
+  </nav>
+</header>
+
+<main id="board" aria-live="polite"></main>
+
+<section id="diagramWrap" hidden>
+  <div class="dg-toolbar">
+    <div class="dg-row">
+      <span class="lbl">Sub-area</span>
+      <span id="dgFilters" class="dg-chips"></span>
+    </div>
+    <div class="dg-row dg-row-2">
+      <span class="lbl">Hashtag</span>
+      <select id="dgTagFilter" title="Filter by hashtag"><option value="all">all</option></select>
+      <span class="lbl">Owner</span>
+      <select id="dgOwnerFilter" title="Filter by designated owner"><option value="all">all</option></select>
+      <span class="lbl">Data</span>
+      <select id="dgDataFilter" title="Filter by data category">
+        <option value="all">all</option>
+        <option value="master">Master</option>
+        <option value="transactional">Transactional</option>
+        <option value="reference">Reference</option>
+        <option value="analytical">Analytical / Reporting</option>
+      </select>
+      <span class="sep"></span>
+      <button class="btn" id="dgAddNode">+ concept</button>
+      <button class="btn" id="dgAddEdge">⤳ connector</button>
+      <button class="btn" id="dgHierOnly" title="Hide association connectors">Hierarchy only</button>
+      <span class="sep"></span>
+      <button class="btn" id="dgArrange">Auto-arrange</button>
+      <button class="btn" id="dgFit">Fit</button>
+    </div>
+  </div>
+  <div id="cyBox"><div id="cy"></div><div id="cyMsg" hidden></div></div>
+  <p class="dg-hint">Click a box to focus: only it and its connected boxes stay visible, and the edit panel opens · click another visible box to move the focus · click empty canvas (or close the panel) to show everything again · drag boxes to move (positions are saved) · click a connector to edit or delete it · solid arrows = hierarchy, dashed = association.</p>
+</section>
+
+<dialog id="nodeDialog">
+  <div class="dhead">New concept</div>
+  <div class="dbody">
+    <div class="field"><label for="nd-name">Name</label><input type="text" id="nd-name"></div>
+    <div class="field"><label for="nd-cat">Category</label><select id="nd-cat"></select></div>
+    <div class="drow"><button class="btn primary" id="nd-create">Create</button><button class="btn" id="nd-cancel">Cancel</button></div>
+  </div>
+</dialog>
+
+<dialog id="edgeDialog">
+  <div class="dhead" id="ed-title">Connector</div>
+  <div class="dbody">
+    <div class="ends">
+      <select id="ed-src" aria-label="Source concept"></select>
+      →
+      <select id="ed-tgt" aria-label="Target concept"></select>
+      <button class="swap" id="ed-swap" title="Swap direction">⇄</button>
+    </div>
+    <div class="field"><label for="ed-kind">Type</label>
+      <select id="ed-kind">
+        <option value="association">Association (dashed)</option>
+        <option value="hierarchy">Hierarchy — source contains / generalizes target (solid arrow)</option>
+      </select>
+    </div>
+    <div class="field"><label for="ed-label">Label (optional, e.g. "operates", "comprises")</label><input type="text" id="ed-label"></div>
+    <div class="drow"><button class="btn primary" id="ed-save">Save</button><button class="btn danger" id="ed-delete">Delete</button><button class="btn" id="ed-cancel">Cancel</button></div>
+  </div>
+</dialog>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="panel" id="panel" aria-label="Concept details">
+  <div class="panel-head">
+    <span class="cat-dot" id="p-dot"></span>
+    <span class="where" id="p-where">—</span>
+    <button class="btn close" id="closePanel" aria-label="Close panel">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="field"><label for="f-name">Concept</label><input type="text" id="f-name"></div>
+    <div class="field"><label for="f-cat">Category</label><select id="f-cat"></select></div>
+    <div class="field"><label for="f-def">Definition (generated)</label><textarea id="f-def"></textarea></div>
+    <div class="field"><label for="f-final">IC final definition</label><textarea id="f-final" placeholder="Agreed wording — overrides the generated definition on the card and in the document."></textarea></div>
+    <div class="field"><label for="f-char">Key characteristics / Business rules</label><textarea id="f-char" rows="4"></textarea></div>
+    <div class="field"><label>Related concepts</label><div class="rel-chips" id="f-rels"></div></div>
+    <div class="field"><label for="f-tags">Hashtags (comma-separated)</label><input type="text" id="f-tags" placeholder="#…"></div>
+    <div class="field"><label for="f-std">Industry standards</label><textarea id="f-std" rows="2"></textarea>
+      <div style="margin-top:6px"><button class="btn ai" id="explainBtn">◈ Explain references</button></div>
+      <div class="ai-status" id="explainStatus"></div>
+      <div class="ref-note" id="refNote" hidden></div>
+    </div>
+    <div class="field">
+      <label for="f-ai-instr">AI refine (optional instruction)</label>
+      <div class="ai-field-row">
+        <input type="text" id="f-ai-instr" placeholder="e.g. tighten definition, add EPRA angle…">
+        <button class="btn ai" id="refineBtn">✦ Refine</button>
+      </div>
+      <div class="ai-status" id="refineStatus"></div>
+    </div>
+
+    <button class="section-toggle" id="govToggle" aria-expanded="false">
+      <span class="chev">▸</span> Governance &amp; metadata
+    </button>
+    <div class="section-body" id="govBody" hidden>
+      <div class="field"><label for="f-sor">System of record</label><input type="text" id="f-sor" placeholder="e.g. SAP RE-FX, Yardi, MRI"></div>
+      <div class="field"><label for="f-owner">Designated owner (organizational unit or role)</label><input type="text" id="f-owner" placeholder="e.g. Facility, Leasing, Group Finance"></div>
+      <div class="field"><label for="f-datacat">Data category</label>
+        <select id="f-datacat">
+          <option value="">— none —</option>
+          <option value="master">Master</option>
+          <option value="transactional">Transactional</option>
+          <option value="reference">Reference</option>
+          <option value="analytical">Analytical / Reporting</option>
+        </select>
+      </div>
+      <div class="field"><label for="f-tier">Concept tier (card shading)</label>
+        <select id="f-tier">
+          <option value="">Main concept — white</option>
+          <option value="secondary">Secondary concept — light</option>
+          <option value="other">Other / supporting — shaded</option>
+        </select>
+        <div class="tier-legend" style="margin-top:6px">
+          <span><i style="background:#ffffff"></i>main</span>
+          <span><i style="background:#F5F4EF"></i>secondary</span>
+          <span><i style="background:#EDEBE3"></i>other</span>
+        </div>
+      </div>
+      <div class="field"><label for="f-status">Review status</label>
+        <select id="f-status">
+          <option value="">— none —</option>
+          <option value="green">● green — accepted</option>
+          <option value="yellow">● yellow — to discuss</option>
+          <option value="black">● black — parked</option>
+          <option value="flag">⚑ red flag — contested</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="panel-foot">
+    <button class="btn primary" id="saveBtn">Save changes</button>
+    <button class="btn danger" id="deleteBtn">Delete concept</button>
+  </div>
+</aside>
+
+<dialog id="relPicker">
+  <div class="dhead">Add related concept</div>
+  <div class="dlist" id="relList"></div>
+</dialog>
+
+<dialog id="aiDialog">
+  <div class="dhead">✦ AI assist <button class="btn close-d" id="aiClose" aria-label="Close">✕</button></div>
+  <div class="dbody">
+    <textarea id="aiPrompt" placeholder="Describe what to add or improve — the model context is sent along automatically."></textarea>
+    <div class="ai-examples">
+      <button data-ex="Suggest concepts for parking and mobility that are missing from the model.">parking &amp; mobility</button>
+      <button data-ex="What concepts would a mixed-use extension (residential above the mall) require?">mixed-use extension</button>
+      <button data-ex="Suggest concepts needed to model omnichannel retail (click &amp; collect, dark store use of units).">omnichannel</button>
+      <button data-ex="Review the Financial category and propose any missing core concept.">gaps in Financial</button>
+    </div>
+    <button class="btn primary" id="aiGo">Ask</button>
+    <div class="ai-status" id="aiStatus"></div>
+    <div id="aiResults"></div>
+  </div>
+</dialog>
+
+<dialog id="catDialog">
+  <div class="dhead" id="cd-title">Edit sub-area</div>
+  <div class="dbody">
+    <div class="field"><label for="cd-name">Name</label><input type="text" id="cd-name"></div>
+    <div class="field"><label for="cd-color">Colour</label><input type="color" id="cd-color" value="#35608D"></div>
+    <div class="field"><label for="cd-intro">Intro / rationale</label><textarea id="cd-intro" rows="4"></textarea></div>
+    <div class="drow">
+      <button class="btn primary" id="cd-save">Save</button>
+      <button class="btn danger" id="cd-delete">Delete area</button>
+      <button class="btn" id="cd-cancel">Cancel</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="exportDialog">
+  <div class="dhead">Export model JSON <button class="btn close-d" id="exportClose">✕</button></div>
+  <div class="dbody">
+    <p>Your browser/environment blocked the direct file download. Select all the text below (or use Copy) and paste it into a new <code>.json</code> file to save it.</p>
+    <textarea id="exportText" readonly></textarea>
+    <div class="drow">
+      <button class="btn primary" id="exportCopy">Copy to clipboard</button>
+      <button class="btn" id="exportSelectAll">Select all</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SEED = {"categories": [{"id": "physical", "name": "Physical & Built Environment", "color": "#35608D", "intro": "The tangible world the organization manages. The defining modelling challenge in this category is time: retail space is reconfigured continuously, so physical concepts must be effective-dated to keep historical performance comparable.", "concepts": [{"id": "land-site", "name": "Land (Site)", "definition": "The contiguous or functionally unified physical ground area on which a property is situated, representing the site as a whole regardless of how many cadastral parcels it comprises.", "characteristics": "Aggregates one or more Land Parcels into a single managed site identity; stable across parcel boundary changes or additions; the spatial context for the property asset", "relations": ["addressGeo", "building", "geography", "land-parcel", "property"], "standards": "ISO 19152 (LADM); MSCI/IPD asset-level reporting", "pos": {"x": 242, "y": 286}, "tags": ["property"], "status": "green", "owner": "Real Estate", "standardsNote": "ISO 19152 (LADM): Published by the International Organization for Standardization (ISO) under Technical Committee ISO/TC 211, the Land Administration Domain Model has been substantially updated and is now a multi-part series; the current foundational document is ISO 19152-1:2024, \"Geographic information \u2014 Land Administration Domain Model (LADM) \u2014 Part 1: Generic conceptual model,\" which provides an abstract, encoding-independent conceptual model covering parties, spatial units (including parcels), and legal rights, responsibilities, and restrictions, with refined support for versioning and temporal modelling. The Spatial Units package is the part most directly relevant to the \"Land (Site)\" concept, as it formalizes how a plot of ground \u2014 potentially comprising multiple cadastral parcels \u2014 can be described as a coherent administrative unit independently of any particular registration boundary. This justifies the citation because the model supplies the conceptual precedent for treating a functionally unified site as a single identifiable object that may aggregate several underlying parcels, which is precisely the distinction the \"Land (Site)\" concept makes. The standard is available from ISO at https://www.iso.org/standard/81263.html; the original 2012 edition (ISO 19152:2012) remains catalogued at https://www.iso.org/standard/51206.html.\n\n\n\nMSCI/IPD asset-level reporting: MSCI (formerly IPD, which MSCI acquired in 2012) publishes the \"MSCI Global Data Standards for Real Estate Investment,\" the most current edition dated April 2026 and available at https://www.msci.com/documents/1296102/1672393/MSCI+Global+Data+Standards+for+Real+Estate+Investment.pdf. The document establishes a common framework for measuring and reporting the performance and risk of private real estate investments at the vehicle, asset, and tenancy levels, and it explicitly addresses the lack of consistent global data standards as a problem that prevents meaningful cross-market comparison. It is relevant to the \"Land (Site)\" concept because the standards treat each directly held property as a discrete, individually measured asset \u2014 requiring that physical attributes such as floor area and location be attributed to a single asset record \u2014 which necessitates a well-defined notion of the site as the ground-level unit of investment, irrespective of how many cadastral parcels underlie it. Methodology documents, including the \"MSCI Global Methodology Standards for Real Estate Investment\" and the \"MSCI Property Indexes Methodology,\" are accessible from the MSCI Real Estate Methodology Documents page at https://www.msci.com/real-estate-methodology."}, {"id": "property", "name": "Property", "definition": "The shopping centre as a distinct physical and legal object: land and buildings together with the rights held over them.", "characteristics": "Lifecycle states (development, operational, refurbishment, divestment); format classification; GLA vs GBA reconciliation; anchor of most performance aggregation. 'Asset' names a role, not the thing: the portfolio role is expressed through Ownership & Fund Structure and Valuation, the accounting representation through Fixed Asset, and the equipment view through Technical Equipment.", "relations": ["addressGeo", "budget", "building", "campaign", "capexProject", "catchment", "comparabilityStatus", "esgMetric", "facility-service", "footfall", "geography", "incident", "infrastucture", "insurancePolicy", "internalOrg", "land-parcel", "land-site", "market-organization-split", "media-specialty-leasing-unit", "meeting-place", "ownership", "parking", "physical-asset", "placeBrand", "propertyFormat", "propertyRight", "valuation", "visitor-experience"], "standards": "ICSC format definitions; IPMS; ISO 55000", "pos": {"x": 242, "y": 442}, "tags": ["property"], "standardsNote": "ICSC format definitions: \nICSC (formerly the International Council of Shopping Centers, now doing business simply as ICSC) is the global trade association for what it terms the \"Marketplaces Industry,\" covering shopping centers, malls, and all other retail real estate.\n \nICSC publishes a standardized classification of shopping centers based on size and characteristics,\n \ndefining a shopping center as a group of retail and commercial establishments that is planned, developed, owned, and managed as a single property\n \u2014 a definition that directly grounds the concept of Property (Asset) as a bounded, managed entity with a stable identity. This citation is justified because the ICSC format definitions are the retail real estate industry's authoritative reference for what constitutes a distinct property, how its type is determined, and how its gross leasable area is characterized, all of which are preconditions for treating it as a valued asset. The regional classification standards can be verified through ICSC's website at icsc.com; the U.S. version is available directly at https://www.icsc.com/uploads/t07-subpage/US-Shopping-Center-Definition-Standard.pdf, under the heading \"U.S. Shopping-Center Classification and Characteristics.\"\n\nIPMS: \nAs real estate markets become increasingly global, the need for international consistency in property measurement has grown correspondingly; historically, measurement practices were highly localized and lacked the transparency a global marketplace requires, which is why the International Property Measurement Standards were developed by a coalition of more than 80 property organizations and drafted by an independent group of 18 experts from 11 countries.\n \nThe IPMSC previously published asset-class-specific standards including IPMS: Retail Buildings (2019), and in 2023 combined all of these into the single consolidated IPMS: All Buildings,\n which establishes a hierarchy of measurement levels \u2014 from total external footprint through to exclusive occupier area \u2014 that underpins the model's requirement that every measurement carries a defined scope, source, and quality status. The citation is justified because IPMS provides the internationally recognized measurement framework that gives physical substance and comparability to a property's spatial definition across its lifecycle. \nThe current standard, IPMS: All Buildings, is published by the International Property Measurement Standards Coalition (IPMSC)\n and is available for download at https://ipmsc.org/standards/; the document is structured in Parts A through G, with the measurement standards themselves in Part E.\n\nISO 55000: \nISO 55000 is the foundational part of the ISO 55000 series on asset management, providing the overview, terminology, and principles necessary to develop a proactive asset management system, and it establishes the framework for organizations to manage their assets over their full lifecycles in order to enhance the value realized from those assets.\n \nISO 55000 describes the core concepts and benefits of asset management, and the 2024 edition reflects the evolution of the discipline since 2014 with a stronger focus on the outcomes of asset management activities.\n The citation is justified because the standard's treatment of an asset as something with potential or actual value to an organization \u2014 managed systematically across its lifecycle \u2014 is precisely the framing that the concept \"Property (Asset)\" adopts; ISO 55000 gives that framing international, cross-sector authority and supplies the vocabulary for governance, performance, risk, and value realization that an enterprise information model must anchor to. \nThe current editions are ISO 55000:2024 (Asset management \u2014 Vocabulary, overview and principles) and ISO 55001:2024 (Asset management \u2014 Asset management system \u2014 Requirements),\n published by the International Organization for Standardization (ISO); ISO 55000:2024 can be verified and purchased at https://www.iso.org/standard/83053.html."}, {"id": "building", "name": "Building", "definition": "A physical structure within a property, composed of floors and technical systems.", "characteristics": "Construction attributes; measurement basis for gross areas; handover documentation from construction projects.", "relations": ["areaMeasurement", "fixedAsset", "floorZone", "land-site", "measurementStandard", "media-specialty-leasing-unit", "property", "technicalAsset"], "standards": "IPMS 1/2; IFC (ISO 16739); COBie", "pos": {"x": 464, "y": 496}, "standardsNote": "IPMS 1/2: The International Property Measurement Standards Coalition published IPMS: All Buildings in January 2023, consolidating all prior asset-class-specific standards into a single harmonised document.\n \nWithin that framework, IPMS 1 and IPMS 2 define external and internal measurements respectively for the whole or part of a building.\n \nThe standard establishes a levelled floor-by-floor measurement convention, designating the ground-level entrance as Level 0, with floors above numbered upward and floors below numbered downward,\n directly grounding the information model's definition of a building as a structure composed of floors. \nComponent Areas are horizontal areas within a building designated according to their structure and function, with the sum of all Component Areas equalling the IPMS 1 figure for the building or level being measured,\n providing the normative basis for decomposing a building into measurable floor-level units. The standard is published by the International Property Measurement Standards Coalition (IPMSC); the current consolidated edition is titled \"International Property Measurement Standards: All Buildings\" (January 2023) and is freely available at https://ipmsc.org/standards/.\n\n\nIFC (ISO 16739): The Industry Foundation Classes (IFC) constitute a standardised digital description of the built environment, published as an open, vendor-neutral international standard under ISO 16739-1:2024 by both buildingSMART International and the International Organization for Standardization.\n \nThe IFC schema models buildings via the IfcBuilding entity, which sits within a hierarchical spatial structure that decomposes a building into storeys (IfcBuildingStorey) and further into spaces (IfcSpace),\n directly mirroring the information model's definition of a building as composed of floors. \nBuilding service or electrical distribution systems, zonal systems, and structural analysis systems are also related to the building storeys through formal schema relationships,\n confirming the standard's coverage of the technical systems component of the concept. The current version is IFC 4.3 (ISO 16739-1:2024), maintained by buildingSMART International; the schema documentation is available at https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/, and the ISO publication is at https://www.iso.org/standard/84123.html.\n\n\nCOBie: The Construction-Operations Building Information Exchange (COBie) specification provides a standard organisation of data used to manage and maintain facility assets; it encompasses all space, product, and equipment schedules drawn from design drawings as well as as-built, operations and maintenance, and commissioning information captured during construction.\n \nThe COBie format is a subset of a Building Information Model, defined as a Model View Definition of the IFC schema,\n and its Facility, Floor, Space, and Component tables map directly onto the information model's concept of a building structured by floors and containing technical systems. \nOriginally published by the U.S. Army Corps of Engineers in 2007, COBie has since been curated and maintained by the National Institute of Building Sciences (NIBS) under a Creative Commons licence;\n \nversion 2.4 was adopted within NBIMS-US V3 in 2015, and version 3 is the current release, forming part of NBIMS-US V4.\n The COBie V3 specification is available through NIBS at https://nibs.org/nbims/v3/cobie.", "tags": ["property"], "status": "green"}, {"id": "floorZone", "name": "Floor / Zone", "definition": "Vertical (level) and horizontal (zone) subdivision of a building used for navigation, analysis and allocation.", "characteristics": "Zones often defined for footfall and leasing analysis rather than construction; both hierarchies must coexist.", "relations": ["building", "commonArea", "footfall", "media-specialty-leasing-unit", "non-lettable-area-built-environment-zone", "space"], "standards": "IPMS component areas", "standardsNote": "IPMS Component Areas: The International Property Measurement Standards (IPMS), published by the International Property Measurement Standards Coalition (IPMSC) and consolidated into the single harmonised document IPMS: All Buildings in January 2023, establishes a structured framework for decomposing floor area within a building into discrete, typed component areas \u2014 covering vertical elements, penetrations, circulation, primary use space, and shared facilities \u2014 measured level by level throughout the building. \nThe standard requires that the sum of all component areas equal IPMS 1 for the building or for a given level of a building being measured\n, which means every floor (vertical level) must be fully and exhaustively partitioned into named horizontal zones before any area figure can be reported. \nBecause IPMS: All Buildings applies to all building types regardless of use or occupation, and carries the flexibility to measure only part of a building or to holistically measure all areas and allocate them into separate components\n, the standard directly justifies treating Floor/Zone as a first-class model concept that combines both the vertical dimension (discrete numbered levels) and the horizontal dimension (typed area zones) of physical space. The standard can be verified at the IPMSC website (publisher: International Property Measurement Standards Coalition, document: IPMS: All Buildings, 2023, Part C \u2014 Measurement Practice and Component Areas): https://ipmsc.org/standards/", "pos": {"x": 396, "y": 578}, "tags": ["property"], "status": "green"}, {"id": "media-specialty-leasing-unit", "name": "Media & Specialty Leasing Unit", "definition": "A lettable position for media, promotion or temporary retail \u2014 advertising surfaces, kiosks, pop-up sites \u2014 typically in common areas.", "characteristics": "High-volume, short-cycle letting; positions are defined by location and visibility rather than enclosed area; inventory management resembles media booking more than space letting.", "relations": ["areaMeasurement", "building", "commonArea", "floorZone", "occupancy", "property", "rentalUnit", "spaceType", "specialtyLease", "vacancy"], "standards": "ICSC specialty leasing practice", "pos": {"x": 374, "y": 803}, "tags": ["property", "leasing"]}, {"id": "commonArea", "name": "Common Area", "definition": "Non-lettable shared space (malls, atria, restrooms, service corridors).", "characteristics": "Drives service charge allocation; explains the GLA/GBA gap; may host specialty leasing (kiosks, media).", "relations": ["areaMeasurement", "floorZone", "media-specialty-leasing-unit", "non-lettable-area-built-environment-zone", "serviceChargePool", "space", "specialtyLease"], "standards": "IPMS; RICS service charge statement", "pos": {"x": 486, "y": 712}, "tags": ["property"], "status": "green"}, {"id": "non-lettable-area-built-environment-zone", "name": "Service Area", "definition": "A typed subdivision of a building's gross area that is neither lettable nor open to the general public as a common area, encompassing back-of-house, service corridors, plant rooms, loading bays and landlord-retained technical spaces; distinguished from Common Area by its access restriction and from Space by its non-lettable character.", "characteristics": "Access-controlled and restricted to authorised personnel or tenants; carries an area measurement on a declared basis (GIA/IPMS component) with effective dates; typed by function (service, plant, circulation, loading, landlord office) to support GLA/GFA reconciliation", "relations": ["areaMeasurement", "commonArea", "floorZone", "measurementStandard", "space", "spaceType"], "standards": "IPMS 1\u20133 (RICS/IASB, 2016 & 2021 revision) distinguishes Internal Dominated Areas including plant, service and circulation; BOMA 2017 Office/Retail Standard defines Service Areas and Floor Common Areas separately from Usable area; RICS Code of Measuring Practice 6th ed. distinguishes GIA components including service areas", "pos": {"x": 665, "y": 703}, "tags": ["property"], "status": "green"}, {"id": "technicalAsset", "name": "Technical Equipment", "definition": "Maintainable equipment: escalators, HVAC, meters, access systems.", "characteristics": "Asset registry with criticality and maintenance regime; meters link consumption to spaces; classification via construction taxonomies.", "relations": ["building", "facility-service", "fixedAsset", "incident", "infrastucture", "parking", "sensor", "supplierContract", "utilityConsumption"], "standards": "ISO 55000; COBie; Uniclass / CoClass (Sweden)", "pos": {"x": 588, "y": 575}, "tags": ["property"]}, {"id": "land-parcel", "name": "Land Parcel", "definition": "A single cadastral unit of land with its own registered legal identifier, boundary survey and title record, forming the legally indivisible building block of a site.", "characteristics": "Uniquely identified by cadastral or title register reference; carries registered rights, encumbrances and ownership interests; one or more parcels aggregate to form a Land (Site)", "relations": ["addressGeo", "areaMeasurement", "land-site", "measurementSource", "ownership", "property", "propertyRight"], "standards": "ISO 19152 (LADM); national land registry standards (e.g. HM Land Registry, Grundbuch, Kadaster)", "pos": {"x": 391, "y": 260}, "tags": ["property"], "status": "green"}, {"id": "parking", "name": "Parking & Mobility Facility", "definition": "Parking structures and mobility infrastructure (car parks, EV charging, cycle facilities, logistics access) serving the property.", "characteristics": "Capacity and utilization are measurable; increasingly revenue-bearing (paid parking, EV charging) and ESG-relevant; may be shared with or operated by third parties.", "relations": ["charge", "property", "technicalAsset", "utilityConsumption"], "standards": "EPBD (EV charging provisions)", "pos": {"x": 162, "y": 576}, "tags": ["property"], "status": "flag"}, {"id": "areaMeasurement", "name": "Area Measurement", "definition": "A measured area figure for a space, building or property, stated on a declared basis at a point in time.", "characteristics": "Value plus basis, date and status \u2014 GLA, GBA and letting-plan areas are instances, not attributes; re-measurement creates a new record rather than overwriting; discrepancies between bases are first-class facts.", "relations": ["building", "commonArea", "land-parcel", "measurementStandard", "media-specialty-leasing-unit", "non-lettable-area-built-environment-zone", "space"], "standards": "IPMS; SS 21054 (Sweden); BOMA", "pos": {"x": 682, "y": 407}, "standardsNote": "IPMS: \nThe International Property Measurement Standards are published by the International Property Measurement Standards Coalition (IPMSC), a body comprising over 80 professional and not-for-profit organisations from 11 countries.\n \nThe current version, IPMS: All Buildings, was published in January 2023 and consolidates all previously separate asset-class standards into a single harmonised framework applicable to every building type, regardless of use or occupation \u2014 including retail.\n It directly justifies the citation because \nit defines multiple area components and measurement levels with sufficient flexibility to capture different purposes, while adopting distinct nomenclature to avoid the inconsistencies found in localised market standards\n \u2014 precisely what an enterprise model needs when recording a measured area figure on a declared basis. Verification: International Property Measurement Standards Coalition (IPMSC), \"IPMS: All Buildings\" (2023), Parts B\u2013E; available at https://ipmsc.org/standards/.\n\nSS 21054: \nSS 21054:2020, titled \"Area and volume of buildings \u2014 Terminology and measurement,\" is a Swedish standard published by the Swedish Institute for Standards (SIS).\n \nIt is used by area surveyors, architects, estate agents, and building planners, and is explicitly applicable to building permit processes, valuation, rent-setting, and property management\n \u2014 all contexts in which a shopping-mall operator in Sweden would need to declare a measured area figure against a recognised basis. \nThis 2020 edition supersedes SS 21054:2009 edition 1\n and is the authoritative local standard that governs how Swedish floor areas are defined and calculated, making it the natural citation anchor for any Area Measurement concept applied to Swedish assets. Verification: Swedish Institute for Standards (SIS), \"SS 21054:2020 Area and volume of buildings \u2014 Terminology and measurement,\" available at https://www.sis.se/en/produkter/construction-materials-and-building/buildings/general/ss-210542020/.\n\nBOMA: \nBOMA International serves as the American National Standards Institute (ANSI) secretariat for a suite of area measurement standards\n, giving its methods formal national-standards status in the United States. \nThe current retail-specific instrument is BOMA 2025 for Retail Properties: Standard Method of Measurement (ANSI/BOMA Z65.5-2025), which is intended exclusively for retail properties and may be applied to single-tenant, multi-tenant, or multi-building configurations\n \u2014 directly relevant to shopping-mall measurement. \nIts primary objectives include promoting an unambiguous framework for determining rentable area, facilitating transparency among all commercial real estate participants, and aligning concepts with the International Property Measurement Standards\n, which confirms why it belongs alongside IPMS as a complementary citation for any Area Measurement concept in a retail real estate information model. Verification: Building Owners and Managers Association (BOMA) International, \"BOMA 2025 for Retail Properties: Standard Method of Measurement (ANSI/BOMA Z65.5-2025)\"; standards index available at https://www.boma.org/BOMA/BOMA-Standards/BOMA_Floor_Measurement_Standards/Retail.aspx.", "tags": ["property"], "status": "flag"}, {"id": "infrastucture", "name": "Infrastructure", "definition": "Site-level built structures outside buildings: utility networks, roads, plazas, lighting and technical installations serving the property as a whole.", "characteristics": "Maintained and capitalized like buildings but without lettable content; often shared across buildings; links consumption and maintenance to the site level.", "relations": ["property", "technicalAsset", "utilityConsumption"], "standards": "ISO 55000; CoClass / Uniclass", "tags": [], "status": "", "owner": ""}, {"id": "space", "name": "Space", "definition": "An identifiable physical area within a building \u2014 the generic spatial object, classified by category and versioned over time.", "characteristics": "Effective-dated (space versions) because areas split, merge and reclassify between categories; area figures live in Area Measurement, never as attributes; the commercial letting role is carried by Rental Unit, not by the space itself.", "relations": ["areaMeasurement", "capexProject", "commonArea", "comparabilityStatus", "floorZone", "kpiDefinition", "leasingDeal", "measurementStandard", "non-lettable-area-built-environment-zone", "occupancy", "rentalUnit", "spaceType", "utilityConsumption", "vacancy"], "standards": "IPMS 3; RICS Property Measurement; SS 21054 (Sweden); BOMA", "standardsNote": "Here are the four standard justification paragraphs, each in plain text with no markdown formatting:\n\nIPMS 3: \nIPMS groups its measurements into three fundamentally different categories, with IPMS 3 specifically covering the floor area available on an exclusive basis to an occupier, measured either to the external or internal boundary of the building.\n \nCrucially for a shopping mall information model, IPMS 3 measurements may change as tenant configurations change over time, and recording the date of each inspection alongside the measured area is therefore considered essential\n \u2014 a direct justification for the model's requirement that physical space be effective-dated and that every measurement carry a documented source. \nThe current governing document is IPMS: All Buildings, published in January 2023 by the International Property Measurement Standards Coalition (IPMSC), available at ipmsc.org, where Part E covers IPMS 3 for exclusive-use areas.\n\n\nRICS Property Measurement: \nThe RICS Property Measurement 2nd edition, which incorporated IPMS for offices and residential buildings, was archived in June 2025, and RICS is currently working on an updated Code.\n \nIn the interim, RICS members and RICS-regulated firms are directed to adopt the appropriate measurement basis from either IPMS: All Buildings or RICS's Code of Measuring Practice to satisfy the requirements of each instruction.\n For a retail-focused model this matters because \nthe Code of Measuring Practice 6th edition still applies to retail units, warehouses, and mixed-use buildings\n, making it the operative RICS instrument for defining the Net Internal Area of individual shop units that form lettable spaces in a mall. The archived RICS Property Measurement 2nd edition and the active Code of Measuring Practice 6th edition are both published by the Royal Institution of Chartered Surveyors (RICS) and are accessible via rics.org/profession-standards/rics-standards-and-guidance/sector-standards/real-estate-standards.\n\nSS 21054: \nSS 21054:2020, titled \"Area and volume of buildings \u2014 Terminology and measurement,\" is the current Swedish standard, published by the Swedish Institute for Standards (SIS) and available for purchase at sis.se.\n \nThe standard can be applied to all types of buildings and is used in contexts ranging from planning and design through to building permits, tax assessments, valuations, and rent-setting\n \u2014 all activities that depend on the unambiguous identity and measured area of individual premises. Its inclusion anchors the model for Swedish mall portfolios, where the concept of \"lokalutrymme\" (premises space, i.e. space used exclusively for purposes other than residential occupation or shared building services) corresponds directly to the lettable unit concept, and where lease contracts and rateable assessments legally reference SS 21054 area figures; the standard is found at sis.se/en/produkter/construction-materials-and-building/buildings/general/ss-210542020.\n\nBOMA: \nBOMA 2025 for Retail Properties: Standard Method of Measurement (ANSI/BOMA Z65.5-2025) is the current edition, intended exclusively for retail properties and focused on providing an unambiguous framework for determining Gross Leasable Area (GLA), while facilitating transparency and clear communication of retail measurement concepts among all participants in commercial real estate.\n \nUnlike BOMA's office and industrial standards, which use \"Rentable Area,\" the Retail Standard defines GLA as its core metric, making it the foundation for retail leasing, valuation, and transactions across shopping centres, malls, and mixed-use retail developments.\n This directly justifies the citation because GLA is the operational definition of what the model calls the lettable unit \u2014", "pos": {"x": 292, "y": 704}, "tags": ["property", "leasing"]}, {"id": "sensor", "name": "Sensor", "definition": "A device that produces observations: counters, meters, environmental and occupancy sensors.", "characteristics": "Mounted on or in physical objects; each observation carries the sensor as its source; calibration and outage history explain data quality.", "relations": ["footfall", "measurementSource", "technicalAsset", "utilityConsumption"], "standards": "IBPDI CDM (Sensor, SensorMeasurement)", "tags": [], "status": "", "owner": ""}, {"id": "physical-asset", "name": "Loose Equipment (FF&E)", "definition": "Movable furniture, fixtures and equipment not fixed to the building: seating, decorations, signage, tools.", "characteristics": "Distinct from Technical Equipment (building-serving installations); tracked for inventory and accounting rather than maintenance regimes; may be capitalized or expensed.", "relations": ["fixedAsset", "property"], "standards": "IAS 16", "tags": [], "status": "green", "owner": ""}]}, {"id": "party", "name": "Party & Organization", "color": "#7E5A9B", "intro": "Who the organization deals with. The retail-specific pattern is the separation of Brand from Legal Entity from Group: obligations attach to legal entities, commercial analysis attaches to brands, and risk aggregates at group level. Collapsing these into a single Tenant concept is the most common modelling mistake in the sector.", "concepts": [{"id": "partyConcept", "name": "Party", "definition": "Supertype for any person or organization the enterprise interacts with.\nA party is a person or organization. This might include visitors, partners, suppliers, service providers, individual contract signatories, family members, professionals, authorities in general or specific representatives, and in general both individual parties representing an organization and the organization itself may be considered parties.", "characteristics": "Single identity across roles; contact and communication details; consent and privacy attributes.", "relations": ["individual", "legalEntity", "organization", "partyRole"], "standards": "OSCRE IDM party model", "pos": {"x": 628, "y": 936}, "tags": ["organization"], "standardsNote": "The web searches confirm the nature of the OSCRE IDM and its publisher, but the IDM's internal documentation on the Party subject area is not publicly indexed in searchable form \u2014 the model itself sits behind the OSCRE member portal at oscre.org/idm. I have sufficient verified information to write an accurate, well-cited paragraph. Here is the result:\n\n---\n\n\nOSCRE IDM: OSCRE International is a nonprofit corporate-membership organization dedicated to developing and implementing real estate data standards, and its Industry Data Model\u2122 (IDM) serves as the vehicle for those standards.\n \nThe IDM provides a structured framework spanning more than 130 use cases \u2014 including leasing, space management, facilities management, and investment management \u2014 developed over nearly two decades in collaboration with owners, occupiers, investors, service providers, and technology vendors.\n Within this model, the IDM organises real estate stakeholders under a Party subject area that treats individuals and organisations as a unified supertype, allowing a single entity \u2014 whether a natural person such as a contract signatory or an organisation such as a tenant company \u2014 to be related to leases, spaces, and transactions through typed roles rather than through separate, incompatible structures. This design directly justifies the citation: it provides the industry-standard conceptual warrant for collapsing persons and organisations into one supertype and then differentiating them only by the role they play in a given real estate relationship, which is precisely the intent of the Party concept in this model. The model is published and maintained by OSCRE International, Inc. (Irving, Texas); the IDM can be accessed without charge at https://www.oscre.org/idm, and the Party-related subject area is navigable through the interactive model browser at that address.", "status": "flag"}, {"id": "partyRole", "name": "Party Role", "definition": "The capacity in which a party acts: tenant, landlord, guarantor, supplier, managing agent, lender.", "characteristics": "One party can hold several roles simultaneously; roles are time-bounded; keeps the party master free of role-specific duplication.", "relations": ["agreement", "partyConcept", "role-person-in-organization"], "standards": "OSCRE IDM role pattern", "pos": {"x": 587, "y": 1214}, "tags": ["organization"], "status": "flag", "standardsNote": "Good \u2014 the search results confirm enough about the OSCRE IDM to write an accurate, well-supported paragraph. The OSCRE IDM does not appear to publish a specific externally-visible document section titled \"role pattern\" in an openly indexable form (the model itself is behind a membership/toolkit login at oscre.org/idm), but the organisation, document title, and access URL are verifiable. I have enough to write the paragraph accurately and honestly, noting where to verify it and the access URL.\n\nOSCRE IDM: \nThe OSCRE Industry Data Model (IDM), published by OSCRE International \u2014 a non-profit focused on real estate data standards and governance \u2014 provides a framework for core real estate functions spanning more than 130 use cases across leasing, space management, investment management, and related domains.\n Within that framework, the IDM establishes a reusable party role pattern that captures the distinct capacities in which any given party may participate across those use cases \u2014 distinguishing, for example, a tenant from a landlord, a guarantor, a managing agent, a lender, or a supplier without duplicating the underlying party record. \nIt does this by defining consistent data fields and structures for property, lease, occupancy, and financial data\n, and the party role construct is what ties a single party entity to its varying contractual or operational relationships across that landscape. This citation is therefore warranted because the IDM's role pattern is the direct industry precedent for modelling the same set of capacities \u2014 tenant, landlord, guarantor, and so on \u2014 that the \"Party Role\" concept in this enterprise model enumerates. The model can be browsed and verified through the OSCRE member toolkit at https://www.oscre.org/idm and https://www.oscre.org/Industry-Data-Model/Access-To-IDM-Toolkit; the authoritative publisher is OSCRE International (oscre.org), and the relevant domain within the IDM is the Leasing and Party subject areas.", "owner": ""}, {"id": "legalEntity", "name": "Legal Entity (Company)", "definition": "A registered company that can hold contracts and obligations.", "characteristics": "Registration numbers (e.g. organisationsnummer); credit risk attributes; the invoicing and enforcement counterpart.", "relations": ["brand", "guarantee", "internalOrg", "lease", "orgGroup", "organization", "ownership", "partner-contact-sub-type-of-individual", "partyConcept", "propertyRight", "receivable"], "standards": "LEI; national registries", "pos": {"x": 461, "y": 733}, "tags": ["organization"], "status": "green"}, {"id": "orgGroup", "name": "Organization Group", "definition": "The ultimate parent grouping of legal entities.\nIn our case - Ingka Centres, higher level - Ingka Group", "characteristics": "Level at which counterparty exposure and covenant risk are aggregated; ownership hierarchies change over time.", "relations": ["guarantee", "legalEntity"], "standards": "LEI relationship data", "pos": {"x": 640, "y": 1026}, "tags": ["organization"], "status": "yellow", "owner": ""}, {"id": "brand", "name": "Partner Brand (Partner Trading Name)", "definition": "The consumer-facing retail concept operated in spaces.", "characteristics": "First-class concept, not an attribute of tenant; operated by one or more legal entities (including franchisees); unit of merchandising-mix and cross-portfolio exposure analysis.", "relations": ["leasingDeal", "legalEntity", "loyaltyProgramme", "merchCategory", "occupancy"], "standards": "ICSC merchandising classifications (as applied to brands)", "pos": {"x": 210, "y": 838}, "tags": ["organization", "leasing"], "status": "yellow", "owner": ""}, {"id": "internalOrg", "name": "Internal Organization (Business Unit & Cost Centre)", "definition": "The organization's own management and accounting structure to which assets, income and costs are attributed.", "characteristics": "Business units, cost centres and management regions; asset-to-unit mapping changes over time and must be effective-dated; the bridge between the asset world and ERP reporting.", "relations": ["budget", "business-domain", "co-worker-sub-type-of-individual", "employment-contract", "fiscal-year", "legalEntity", "market-organization-split", "property"], "standards": "\u2014", "pos": {"x": 616, "y": 427}, "tags": ["organization"], "status": "flag"}, {"id": "individual", "name": "Individual", "definition": "A natural person the organization interacts with in any capacity.", "characteristics": "Subtype of Party; one person may hold several roles over time (visitor, contact, co-worker); personal-data handling is constrained by consent and purpose.", "relations": ["co-worker-sub-type-of-individual", "partner-contact-sub-type-of-individual", "partyConcept", "personal-data", "role-person-in-organization", "vendor-consultant-sub-type-of-individual", "visitor-sub-type-of-individual"], "standards": "OSCRE IDM party model; GDPR (as constraint)", "tags": [], "status": "flag", "owner": ""}, {"id": "organization", "name": "Organization", "definition": "A body of persons \u2014 company, authority, association \u2014 that acts as a party without necessarily being a single legal entity.", "characteristics": "Subtype of Party; may comprise several legal entities; the umbrella for contacts and roles where legal identity is not the point.", "relations": ["legalEntity", "partyConcept", "role-person-in-organization"], "standards": "OSCRE IDM party model", "tags": [], "status": "flag", "owner": ""}, {"id": "business-domain", "name": "Business Domain", "definition": "A governed slice of the business used to organize capabilities, data ownership and stewardship.", "characteristics": "The backbone for data-domain assignment (mirrored by hashtags in this model); domains own concepts and data products; distinct from the reporting organization structure.", "relations": ["internalOrg"], "standards": "DAMA-DMBOK (data governance)", "tags": [], "status": "", "owner": ""}, {"id": "market-organization-split", "name": "Market (Organization Split)", "definition": "The organization's market-level management grouping of properties and teams, such as countries or clusters.", "characteristics": "Effective-dated mapping of properties to markets; the grain for market P&L and management reporting; distinct from geographic reference data.", "relations": ["geography", "internalOrg", "property"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "role-person-in-organization", "name": "Role (Person in Organization)", "definition": "The function an individual performs within an organization: job role, decision rights, contact responsibility.", "characteristics": "Time-bounded; one person may hold several roles; complements Party Role, which captures contractual capacities rather than job functions.", "relations": ["individual", "organization", "partyRole"], "standards": "OSCRE IDM role pattern", "tags": [], "status": "", "owner": ""}, {"id": "visitor-sub-type-of-individual", "name": "Visitor (sub-type of Individual)", "definition": "An individual visiting a meeting place, identified or anonymous.", "characteristics": "Mostly anonymous at the individual level \u2014 known through visitation measurement and, where consented, loyalty membership.", "relations": ["footfall", "individual", "loyaltyProgramme"], "standards": "GDPR (as constraint)", "tags": [], "status": "", "owner": ""}, {"id": "partner-contact-sub-type-of-individual", "name": "Partner Contact (sub-type of Individual)", "definition": "A named person acting for a partner: tenant, supplier or other counterparty.", "characteristics": "Linked to the counterparty organization and to communications; contact roles and validity are time-bounded.", "relations": ["individual", "legalEntity", "tenantComms"], "standards": "OSCRE IDM", "tags": [], "status": "", "owner": ""}, {"id": "co-worker-sub-type-of-individual", "name": "Co-worker (sub-type of Individual)", "definition": "An individual employed by or working within the organization.", "characteristics": "Linked to internal organization and employment contract; access and system identities hang off this concept.", "relations": ["employment-contract", "individual", "internalOrg"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "vendor-consultant-sub-type-of-individual", "name": "Vendor / Consultant (sub-type of Individual)", "definition": "An external individual engaged through a supplier or consultancy arrangement.", "characteristics": "Access and accountability tracked like co-workers, but anchored in a supplier contract rather than employment.", "relations": ["individual", "supplierContract"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}]}, {"id": "legal", "name": "Legal & Contractual", "color": "#A3752C", "intro": "The formal instruments that create rights and obligations. Terms and clauses are modelled as related concepts rather than lease attributes so amendments, side letters and non-standard provisions stay representable.", "concepts": [{"id": "agreement", "name": "Agreement", "definition": "Supertype for all contracts: leases, specialty leasing, guarantees, supplier contracts.", "characteristics": "Common contract attributes (parties, dates, status, documents) defined once; subtype-specific detail added below.", "relations": ["employment-contract", "guarantee", "insurancePolicy", "lease", "partyRole", "specialtyLease", "supplierContract"], "standards": "OSCRE IDM agreement model", "pos": {"x": 462, "y": 1001}, "tags": ["legal"]}, {"id": "lease", "name": "Lease", "definition": "The right of a legal entity to occupy one or more spaces for a term against consideration.", "characteristics": "Many-to-many with Space, with time as an essential dimension; distinct from occupancy; lease abstraction is a governed process with source-document traceability.", "relations": ["agreement", "amendment", "charge", "guarantee", "insurancePolicy", "leaseTerm", "leasingDeal", "legalEntity", "occupancy", "rentalUnit", "serviceChargePool", "tenantComms", "valuation"], "standards": "IFRS 16 definitions; OSCRE lease abstraction", "pos": {"x": 321, "y": 1020}, "tags": []}, {"id": "specialtyLease", "name": "Specialty Leasing Agreement", "definition": "Short-term commercial arrangements: kiosks, pop-ups, promotional space, advertising media.", "characteristics": "High volume, short duration; often occupies common areas; a distinct income line with its own pipeline.", "relations": ["agreement", "commonArea", "media-specialty-leasing-unit", "occupancy"], "standards": "ICSC specialty leasing practice", "pos": {"x": 311, "y": 1167}, "standardsNote": "Based on my research, I can now write the citation paragraph. The citation refers to \"ICSC specialty leasing practice\" \u2014 this is not a single titled normative standard document in the way that, say, an ISO or ASTM standard is. Rather, ICSC (the International Council of Shopping Centers, now operating simply as ICSC) has established specialty leasing practice through a body of professional guidance that includes its Specialty Leasing Designation (SLD) curriculum, its Certified Leasing Specialist (CLS) and Certified Retail Real Estate Professional (CRRP) exam competency frameworks, educational programs such as the Specialty Leasing Institute, and ongoing editorial guidance published via ICSC Exchange. The responsible thing to do \u2014 and required by the instructions \u2014 is to accurately represent what the standard is, note where it lives, and flag the limitation that ICSC's specialty leasing guidance is a practice framework rather than a single codified document. Here is the paragraph:\n\n---\n\nICSC specialty leasing practice: ICSC \u2014 the industry association for retail real estate professionals, headquartered in New York and accessible at icsc.com \u2014 establishes specialty leasing as a defined practice area covering short-term license and lease arrangements for kiosks, retail merchandising units, pop-up inline spaces, advertising placements, and sponsorships, distinguishing these arrangements from conventional long-term leases by their abbreviated term and the landlord's retained termination rights. This body of practice is codified across several ICSC documents: the Certified Leasing Specialist (CLS) Exam Specifications Outline (Domain 4, \"Short-term Leasing\"), which enumerates the specific agreement types \u2014 license agreements, kiosks, in-line, advertising, and sponsorship \u2014 that collectively constitute the specialty leasing category; the Certified Retail Real Estate Professional (CRRP) Exam Specifications Outline, which frames specialty leasing, retail merchandising units, and kiosks as distinct alternative revenue-generating sources alongside long-term leasing; and the now-retired Specialty Leasing Designation (SLD) competency framework, which defined the qualifying experience for the category as including sales and merchandising for common area, sponsorship advertising, ancillary income, and deal-making structures. These documents justify the citation because they are the closest equivalent to a codified industry standard for the concept: they define the scope, agreement type (license versus lease), physical formats, and revenue streams that belong to a Specialty Leasing Agreement, directly mapping to the concept's definition of kiosks, pop-ups, promotional space, and advertising media. The CLS Exam Specifications Outline is published by ICSC and can be verified at https://www.icsc.com/uploads/t07-subpage/CLS-Global-English-.pdf; the CRRP Exam Specifications Outline at https://www.icsc.com/uploads/about/CRRP-Exam-Specifications-2018.pdf; and information on the legacy SLD designation at https://www.icsc.com/attend-and-learn/professional-development/education/existing-credential-designations. Note that ICSC does not publish a single consolidated normative standard document under the title \"specialty leasing practice\"; the guidance is distributed across these credential frameworks and educational materials, so the citation should be understood as pointing to that collective body of practice rather than to one numbered document."}, {"id": "leaseTerm", "name": "Lease Term / Clause", "definition": "An individual provision of a lease: rent provision, indexation clause, break option, turnover rent threshold, exclusivity, incentive.", "characteristics": "First-class and effective-dated; indexation references a named index; turnover provisions reference reported sales definitions.", "relations": ["amendment", "charge", "esgMetric", "indexConcept", "lease", "recoverability", "reportedSales"], "standards": "IFRS 16 (options, variable payments)", "pos": {"x": 216, "y": 1080}}, {"id": "amendment", "name": "Amendment / Side Letter", "definition": "A modification of agreed terms with its own effective dates and documentation.", "characteristics": "Preserves the original agreement's identity; side letters often carry commercially sensitive concessions that must remain queryable.", "relations": ["lease", "leaseTerm"], "standards": "OSCRE lease abstraction", "pos": {"x": 310, "y": 1379}}, {"id": "guarantee", "name": "Guarantee & Security", "definition": "Instruments securing lease obligations: parent guarantees, bank guarantees, deposits.", "characteristics": "Links counterparty risk to the group structure; expiry and coverage tracking; drawdown events.", "relations": ["agreement", "lease", "legalEntity", "orgGroup"], "standards": "\u2014", "pos": {"x": 545, "y": 1027}}, {"id": "supplierContract", "name": "Supplier Contract", "definition": "Contracts for facility services, utilities, security, cleaning and works.", "characteristics": "Cost side of the service charge pools; SLA and scope definitions; links to technical assets maintained.", "relations": ["agreement", "digitalProduct", "facility-service", "serviceChargePool", "technicalAsset", "vendor-consultant-sub-type-of-individual"], "standards": "ISO 41012 (FM sourcing)", "pos": {"x": 462, "y": 892}}, {"id": "propertyRight", "name": "Property Right & Encumbrance", "definition": "Registered rights over land and buildings: title, ground leases, easements, mortgages and other encumbrances.", "characteristics": "Registered in a jurisdiction's land register; encumbrances constrain transactions and financing; tenant-owned improvements can create rights of their own.", "relations": ["land-parcel", "legalEntity", "ownership", "property"], "standards": "National land registries; ILMS", "pos": {"x": 549, "y": 297}, "tags": ["legal", "property"]}, {"id": "insurancePolicy", "name": "Insurance Policy", "definition": "Insurance contracts covering assets, liabilities and loss of income.", "characteristics": "Coverage type, insured values and excess; property damage and business interruption cover link to rental income at risk; claims history informs risk management.", "relations": ["agreement", "incident", "lease", "property"], "standards": "\u2014", "pos": {"x": 389, "y": 770}}, {"id": "employment-contract", "name": "Employment Contract", "definition": "The agreement establishing an employment relationship between the organization and a co-worker.", "characteristics": "Subtype of Agreement; usually mastered in HR systems \u2014 represented here for role, access and cost attribution rather than HR administration.", "relations": ["agreement", "co-worker-sub-type-of-individual", "internalOrg"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}]}, {"id": "commercial", "name": "Commercial & Occupancy", "color": "#2E7D6B", "intro": "How space is actually used and traded. Occupancy is deliberately distinct from Lease: a lease can exist without trading (fit-out, dark units) and trading can exist without a standard lease. Most analytical questions \u2014 mix, density, vacancy \u2014 are questions about occupancy.", "concepts": [{"id": "occupancy", "name": "Occupancy", "definition": "The fact of a brand trading in a space during a period.", "characteristics": "Effective-dated; carries the merchandising classification actually traded; the grain for sales density, mix and cross-visitation analysis.", "relations": ["brand", "comparabilityStatus", "kpiDefinition", "lease", "media-specialty-leasing-unit", "merchCategory", "rentalUnit", "reportedSales", "space", "specialtyLease", "vacancy"], "standards": "ICSC operating metrics", "pos": {"x": 154, "y": 940}}, {"id": "occupancyCost", "name": "Occupancy Cost", "definition": "The tenant's total cost of occupation relative to sales (OCR / effort ratio).", "characteristics": "Derived concept with governed formula; key affordability and sustainability-of-rent indicator.", "relations": ["charge", "kpiDefinition", "reportedSales"], "standards": "ICSC benchmarking conventions", "pos": {"x": 224, "y": 894}}, {"id": "vacancy", "name": "Vacancy", "definition": "The state of a space without occupancy, typed by cause.", "characteristics": "Physical vacancy (no occupant) is distinct from economic or financial vacancy (legally leased but not income-generating, e.g. rent-free periods) \u2014 both are states of the rental unit under governed definitions; strategic vs refurbishment vs frictional causes carry different meaning.", "relations": ["leasingDeal", "media-specialty-leasing-unit", "occupancy", "rentalUnit", "space"], "standards": "EPRA vacancy definitions", "pos": {"x": 133, "y": 1016}}, {"id": "leasingDeal", "name": "Leasing Deal (Pipeline) or Prospect", "definition": "A prospective transaction from prospect through negotiation to signing.", "characteristics": "Stage model with probability; links prospects (brands) to target spaces; renewal deals reference the existing lease.", "relations": ["brand", "lease", "space", "vacancy"], "standards": "\u2014", "pos": {"x": 216, "y": 1234}, "tags": [], "status": "", "owner": ""}, {"id": "merchCategory", "name": "Retail Category", "definition": "Hierarchical classification of the retail and leisure offer.", "characteristics": "Applied to brands and occupancies; align to an industry scheme with governed local overrides; the backbone of tenant-mix strategy.", "relations": ["brand", "occupancy"], "standards": "ICSC classifications", "pos": {"x": 24, "y": 1034}, "tags": [], "status": "", "owner": ""}, {"id": "reportedSales", "name": "Reported Sales (Tenant Turnover)", "definition": "Tenant-declared sales per occupancy and period.", "characteristics": "Carries provenance and audit status (declared, certified, estimated); basis for turnover rent and occupancy cost ratios; definitional variance (incl./excl. VAT, online returns) must be explicit.", "relations": ["campaign", "leaseTerm", "loyaltyProgramme", "measurementSource", "occupancy", "occupancyCost", "timeCalendar"], "standards": "ICSC / EPRA reporting conventions", "pos": {"x": 114, "y": 682}}, {"id": "campaign", "name": "Marketing Campaign / Event", "definition": "Organized activity intended to drive traffic and sales.", "characteristics": "Time-bounded; funded partly through marketing contributions; evaluated against footfall and sales response.", "relations": ["charge", "communication-marketing-plan", "digitalProduct", "footfall", "loyaltyProgramme", "placeBrand", "property", "reportedSales", "timeCalendar", "visitor-experience"], "standards": "\u2014", "pos": {"x": 291, "y": 514}}, {"id": "rentalUnit", "name": "Rental Unit (Letting Object)", "definition": "The commercial letting object that leases are written against, mapped to one or more physical spaces over time.\nMost likely merge back with physical unit as we currently have different approach and difficul to change.", "characteristics": "Separates commercial identity from physical space so reconfigurations do not break lease history; vacancy is a state of the rental unit; the unit-to-space mapping is effective-dated.", "relations": ["lease", "media-specialty-leasing-unit", "occupancy", "space", "vacancy", "vacancy-ratio"], "standards": "IBPDI CDM (RentalUnit)", "pos": {"x": 119, "y": 1152}, "tags": [], "status": "flag", "owner": ""}, {"id": "tenantComms", "name": "Partner Communication", "definition": "Recorded interactions with tenants: notices, service requests, complaints and structured correspondence.", "characteristics": "Attached to lease, rental unit or property; medium and status tracked; the operational memory that leasing and management decisions draw on.", "relations": ["digitalProduct", "incident", "lease", "partner-contact-sub-type-of-individual", "personal-data"], "standards": "IBPDI CDM (TenantCommunication)", "pos": {"x": 115, "y": 835}, "tags": [], "status": "", "owner": ""}, {"id": "meeting-place", "name": "Meeting Place", "definition": "A property qualifying as a meeting place under defined criteria \u2014 scale, tenant mix, community and experience components \u2014 the organization's flagship retail concept.", "characteristics": "A conceptual qualification of Property, not a separate physical thing; a property may enter or leave the qualification over time; not every retail property is a meeting place, even within the portfolio.", "relations": ["placeBrand", "property", "visitor-experience"], "standards": "\u2014", "tags": [], "status": "green", "owner": ""}, {"id": "facility-service", "name": "Facility Service", "definition": "A defined service delivered to keep places running: cleaning, security, maintenance, waste, landscaping.", "characteristics": "Specified with scope and service levels; procured through supplier contracts; its costs feed service charge pools.", "relations": ["incident", "property", "serviceChargePool", "supplierContract", "technicalAsset", "visitor-experience"], "standards": "ISO 41011/41012 (FM vocabulary)", "tags": [], "status": "", "owner": ""}, {"id": "communication-marketing-plan", "name": "Communication & Marketing Plan", "definition": "The planned calendar of campaigns and communication for a property or portfolio over a period.", "characteristics": "Comprises campaigns; carries budget and objectives; evaluated against visitation and sales response.", "relations": ["budget", "campaign", "placeBrand"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "visitor-experience", "name": "Visitor Experience (CX Services)", "definition": "Services and experience components the landlord provides to visitors: wayfinding, family services, amenities, events and hospitality.", "characteristics": "A service concept, not a KPI \u2014 its outcomes are measured by Visitor Satisfaction and visitation KPIs; sits alongside Facility Service (places) and partner-facing services delivered through facility and communication channels.", "relations": ["campaign", "facility-service", "loyaltyProgramme", "meeting-place", "property", "visitor-satisfaction"], "standards": "\u2014", "tags": [], "status": "green", "owner": ""}]}, {"id": "intangible", "name": "Intangible & Digital Assets", "color": "#9B4A6E", "intro": "Non-physical, value-bearing assets the organization owns or procures: its own brands, loyalty schemes and digital products. Sourcing (bought vs owned) and accounting treatment are facets expressed through relationships rather than separate concepts. This category earns its place when a distinct function stewards these assets as a portfolio.", "concepts": [{"id": "digitalProduct", "name": "Digital Product (Channel)", "definition": "Owned or procured digital products and channels: B2C websites and apps, B2B and partner portals, tenant portals and digital services.", "characteristics": "Bought vs owned is a sourcing facet, not identity \u2014 procured products link to supplier contracts, capitalized ones to the accounting view (intangibles under IAS 38); usage generates measurements with the same provenance pattern as footfall.", "relations": ["campaign", "fixedAsset", "intellectual-property", "loyaltyProgramme", "measurementSource", "supplierContract", "tenantComms"], "standards": "IAS 38 (intangible assets)", "standardsNote": "IAS 38: Published by the International Accounting Standards Board (IASB), IAS 38 Intangible Assets establishes the criteria for recognising, measuring, and disclosing assets that are \nidentifiable, non-monetary, and lack physical substance \u2014 qualifying when they are separable or arise from contractual or other legal rights.\n This directly justifies the citation because the organisation's B2C websites and apps, portals, and digital services are precisely such assets: they are identifiable (separable or contractually grounded), carry no physical substance, and are expected to generate future economic benefits through customer engagement and partner transactions. \nFor assets that meet the recognition criteria, IAS 38 prescribes measurement rules depending on how the asset was obtained, with purchased assets initially measured at cost including directly attributable preparation costs\n \u2014 a distinction that matters when distinguishing between procured digital platforms and internally developed ones, since \ninternally generated intangibles face more restrictive treatment, with the standard dividing internal generation into research and development phases and requiring six criteria to be met before development expenditure can be capitalised.\n The standard is issued by the IASB and can be verified at the IFRS Foundation's official page \u2014 IASB, \"IAS 38 Intangible Assets\" \u2014 at https://www.ifrs.org/issued-standards/list-of-standards/ias-38-intangible-assets/, with the full text available in the IFRS Accounting Standards (Part A), and the IASB is also currently conducting a comprehensive review of IAS 38 to address newer types of intangible assets, details of which are at https://www.ifrs.org/projects/work-plan/intangible-assets/.", "tags": [], "pos": {"x": 307, "y": 638}}, {"id": "placeBrand", "name": "(Meeting) Place Brand", "definition": "The organization's own consumer-facing brand for a property or portfolio \u2014 the identity of the place itself.", "characteristics": "Distinct from tenant brands; carries value in leasing negotiations and marketing; one brand may span multiple properties.", "relations": ["brand-awareness", "campaign", "communication-marketing-plan", "intellectual-property", "loyaltyProgramme", "meeting-place", "property"], "standards": "\u2014", "pos": {"x": 259, "y": 273}, "tags": [], "status": "", "owner": ""}, {"id": "loyaltyProgramme", "name": "Loyalty Programme", "definition": "A scheme relating identified visitors to their visits, services & visitor experience interactions and purchases across the property or portfolio.", "characteristics": "Membership, consent and activity are its core facts; links marketing investment to measurable behavior; privacy constraints shape what may be stored and joined.", "relations": ["brand", "campaign", "digitalProduct", "footfall", "personal-data", "placeBrand", "reportedSales", "visitor-experience", "visitor-sub-type-of-individual"], "standards": "GDPR (as constraint)", "pos": {"x": 135, "y": 501}, "tags": []}, {"id": "intellectual-property", "name": "Intellectual Property", "definition": "Registered and unregistered intangible rights: trademarks, domain names, designs and content rights.", "characteristics": "Registration, territory and renewal dates are core facts; carries value under IAS 38; protects place brands and digital products.", "relations": ["digitalProduct", "fixedAsset", "placeBrand"], "standards": "IAS 38; WIPO registries", "tags": [], "status": "", "owner": ""}]}, {"id": "financial", "name": "Financial & Investment", "color": "#A34A2A", "intro": "Money, value and ownership. Service charge allocation is deliberately modelled as its own concept: the allocation logic is contractual, sits between property costs and lease charges, and is a reconciliation domain in its own right.", "concepts": [{"id": "charge", "name": "Charge", "definition": "A billable amount derived from agreement terms: minimum rent, turnover rent, service charge, marketing levy.", "characteristics": "Traceable to the term that generates it; schedule and indexation logic produce charge lines over time.", "relations": ["budget", "campaign", "glAccount", "lease", "leaseTerm", "occupancyCost", "parking", "receivable", "recoverability", "serviceChargePool"], "standards": "IFRS 16 payment classifications", "pos": {"x": 393, "y": 853}, "tags": [], "status": "", "owner": ""}, {"id": "receivable", "name": "Receivable & Payment", "definition": "Invoiced amounts, collections and arrears.", "characteristics": "Aging and collection status; credit events feed counterparty risk at group level.", "relations": ["charge", "exchange-rate", "legalEntity"], "standards": "\u2014", "pos": {"x": 648, "y": 758}}, {"id": "serviceChargePool", "name": "Service Charge Pool & Allocation", "definition": "Cost pools for shared services and the contractual keys allocating them to leases.", "characteristics": "Three things are often conflated and kept distinct here: the costs incurred (through facility services and supplier contracts), the pool with its contractual allocation keys, and the service charge billed to tenants (a Charge). Budget\u2013actual reconciliation cycle; caps and exclusions per lease; recoverability classification drives what enters the pool.", "relations": ["charge", "commonArea", "facility-service", "lease", "recoverability", "supplierContract"], "standards": "RICS professional statement: Service Charges in Commercial Property", "pos": {"x": 503, "y": 1157}, "tags": [], "status": "flag", "owner": ""}, {"id": "budget", "name": "Budget & Forecast", "definition": "Planned income and cost at asset and portfolio level, versioned by scenario.", "characteristics": "Grain aligned to the charge and cost structures so variance analysis is native, not mapped.", "relations": ["capexProject", "charge", "communication-marketing-plan", "exchange-rate", "fiscal-year", "interest-cost", "internalOrg", "property"], "standards": "INREV reporting guidelines", "pos": {"x": 495, "y": 562}}, {"id": "capexProject", "name": "Capex Project", "definition": "Investment in asset improvement, extension or refurbishment.\nIngka Centres: we have categorization - commercial, technical, CX", "characteristics": "Links lifecycle states to valuation effects; project-to-space mapping for downtime and re-letting planning.", "relations": ["budget", "expansion-project", "fixedAsset", "property", "space", "valuation"], "standards": "ISO 55000; RICS Cost management standards", "pos": {"x": 462, "y": 662}, "tags": [], "status": "", "owner": ""}, {"id": "valuation", "name": "Valuation", "definition": "A point-in-time opinion of value with its assumptions (ERV, yield, void assumptions).", "characteristics": "Assumptions are data, not commentary; passing rent vs ERV bridge; external valuer identity and basis of value recorded.", "relations": ["capexProject", "fixedAsset", "lease", "ownership", "property"], "standards": "RICS Red Book (Valuation \u2013 Global Standards); IVS", "pos": {"x": 390, "y": 710}}, {"id": "ownership", "name": "Ownership & Fund Structure", "definition": "Stakes, joint ventures and the fund-to-asset mapping.", "characteristics": "Determines consolidation and reporting perimeter; look-through metrics for investors; changes over time.", "relations": ["interest-cost", "land-parcel", "legalEntity", "property", "propertyRight", "valuation"], "standards": "INREV guidelines; EPRA BPR", "pos": {"x": 507, "y": 431}, "tags": [], "status": "flag", "owner": ""}, {"id": "fixedAsset", "name": "Fixed Asset (Accounting View)", "definition": "The accounting representation of physical assets: components, book values and depreciation.", "characteristics": "Componentization differs from the technical registry and must be mapped, not assumed; capex activation links projects to book value; the reconciliation point between physical and financial views.", "relations": ["building", "capexProject", "digitalProduct", "intellectual-property", "physical-asset", "technicalAsset", "valuation"], "standards": "IAS 16 (component depreciation)", "pos": {"x": 412, "y": 376}}, {"id": "glAccount", "name": "Account (Accounts Hierarchy)", "definition": "The governed classification of financial postings to which income and cost transactions are coded.", "characteristics": "Account hierarchies (statement type, category, group) enable cross-portfolio comparability; effective-dated versions; industry account structures ease benchmarking.", "relations": ["charge", "exchange-rate", "interest-cost"], "standards": "IBPDI CDM (Account); local GAAP / IFRS structures", "pos": {"x": 408, "y": 1227}, "tags": [], "status": "", "owner": ""}, {"id": "expansion-project", "name": "Expansion Project", "definition": "A capex project extending or reconfiguring a property: new GLA, major remodels, densification.", "characteristics": "Subtype of Capex Project with development-grade attributes (permissions, phasing, letting strategy for new space); affects space versions and comparability status.", "relations": ["capexProject", "comparabilityStatus"], "standards": "\u2014", "tags": [], "status": "green", "owner": ""}, {"id": "recoverability", "name": "Recoverability", "definition": "The classification of a cost as recoverable from tenants or borne by the landlord.", "characteristics": "Contractually determined per lease and cost type; drives the split between service charge pools and owner costs; leakage analysis depends on it. Arguably a classification scheme rather than a free-standing concept \u2014 worth confirming placement.", "relations": ["charge", "leaseTerm", "serviceChargePool"], "standards": "RICS professional statement: Service Charges in Commercial Property", "tags": [], "status": "", "owner": ""}, {"id": "exchange-rate", "name": "Exchange Rate", "definition": "Published currency conversion rates used in accounting, budgeting and reporting.", "characteristics": "Rate type matters (closing, average, budget); rates are sourced from a declared provider per date so conversions are reproducible facts.", "relations": ["budget", "glAccount", "receivable"], "standards": "ISO 4217; ECB reference rates", "tags": [], "status": "", "owner": ""}, {"id": "interest-cost", "name": "Interest (Cost)", "definition": "Financing cost attached to the debt and capital structures financing the assets.", "characteristics": "Attributed to properties and funds for performance measurement; rate terms and hedging live with the financing agreements.", "relations": ["budget", "glAccount", "ownership"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}]}, {"id": "performance", "name": "Performance & Measurement", "color": "#3B7F8C", "intro": "Observations about how assets perform. Provenance is conceptual, not technical: every measurement carries a source and a quality status, so that a confirmed figure can override a counted one without losing either.", "concepts": [{"id": "kpiDefinition", "name": "KPI Definition", "definition": "Governed definitions of derived measures: WAULT, OCR, sales density, like-for-like growth.", "characteristics": "Formula, grain and inclusion rules are enterprise-owned; like-for-like logic depends on space versioning and occupancy history.", "relations": ["brand-awareness", "comparabilityStatus", "cross-visit", "dwell-time", "occupancy", "occupancyCost", "parner-tenant-visitation", "partner-satisfaction", "space", "vacancy-ratio", "visitor-satisfaction"], "standards": "EPRA BPR; INREV; ICSC metric definitions", "pos": {"x": 225, "y": 1006}}, {"id": "footfall", "name": "Visitation", "definition": "Counted visits per counter, zone or property and period.", "characteristics": "Counter-to-zone mapping is effective-dated; de-duplication rules (entrances vs visits) are definitional; supports confirmed-figure overrides with full lineage.", "relations": ["campaign", "catchment", "cross-visit", "dwell-time", "floorZone", "loyaltyProgramme", "measurementSource", "parner-tenant-visitation", "property", "sensor", "timeCalendar", "visitor-sub-type-of-individual"], "standards": "\u2014", "pos": {"x": 207, "y": 478}, "tags": ["visitation"]}, {"id": "catchment", "name": "Catchment Area", "definition": "The geographic demand area of a property, usually tiered (primary/secondary/tertiary).", "characteristics": "Geometry plus demographics; basis for market share and cannibalization analysis; definitional method should be recorded.", "relations": ["brand-awareness", "footfall", "geography", "property"], "standards": "\u2014", "pos": {"x": 328, "y": 185}, "tags": []}, {"id": "utilityConsumption", "name": "Utility Consumption", "definition": "Energy, water and waste per meter and period.", "characteristics": "Meter-to-space mapping; landlord vs tenant consumption split; normalization (degree days, opening hours) for comparability.", "relations": ["esgMetric", "infrastucture", "measurementSource", "parking", "sensor", "space", "technicalAsset"], "standards": "ISO 50001; GRESB; EPBD / EPC", "pos": {"x": 402, "y": 511}}, {"id": "esgMetric", "name": "ESG Metric & Certification", "definition": "Sustainability measurements and certifications attached to assets.", "characteristics": "GRESB indicators, energy performance certificates, building certifications with validity periods; increasingly contractual via green lease clauses.", "relations": ["leaseTerm", "property", "utilityConsumption"], "standards": "GRESB; BREEAM / LEED; EPC; CSRD / ESRS", "pos": {"x": 210, "y": 725}}, {"id": "measurementSource", "name": "Measurement Source & Quality Status", "definition": "The provenance of any observation: source system or device, method, and status (raw, validated, confirmed, estimated).", "characteristics": "First-class across all measurement concepts; enables trust-based consumption and override patterns without destroying original data.", "relations": ["digitalProduct", "footfall", "land-parcel", "reportedSales", "sensor", "utilityConsumption"], "standards": "Data management practice (DAMA-DMBOK data quality dimensions)", "pos": {"x": 231, "y": 369}}, {"id": "comparabilityStatus", "name": "Comparability Status", "definition": "A governed flag stating whether a space, occupancy or property is comparable period-over-period (like-for-like).", "characteristics": "Derived from space versions, occupancy history and lifecycle events; first-class so every KPI applies the same inclusion logic; effective-dated.", "relations": ["expansion-project", "kpiDefinition", "occupancy", "property", "space"], "standards": "EPRA like-for-like definitions", "pos": {"x": 210, "y": 647}}, {"id": "majority-of-business-kpis-add-in-this-section", "name": "Majority of business KPIs - add in this section", "definition": "", "characteristics": "", "relations": [], "standards": "\u2014", "tags": [], "status": "yellow", "owner": ""}, {"id": "vacancy-ratio", "name": "Vacancy Ratio", "definition": "Vacant lettable area or rental value as a share of the total, at a point in time.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["kpiDefinition", "rentalUnit"], "standards": "EPRA vacancy rate", "tags": [], "status": "", "owner": ""}, {"id": "visitor-satisfaction", "name": "Visitor Satisfaction", "definition": "Measured visitor satisfaction with the place experience, from surveys or ratings.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["kpiDefinition", "visitor-experience"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "partner-satisfaction", "name": "Partner Satisfaction", "definition": "Measured partner (tenant) satisfaction with the landlord relationship and services.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["kpiDefinition"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "brand-awareness", "name": "Brand Awareness", "definition": "Measured awareness of the place brand within its catchment.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["catchment", "kpiDefinition", "placeBrand"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "cross-visit", "name": "Cross-Visitation", "definition": "The share of visitors visiting more than one tenant, zone or property within a period.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["footfall", "kpiDefinition"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "parner-tenant-visitation", "name": "Partner (Tenant) Visitation", "definition": "Visits attributed to a specific partner's units, from counters or sensor zones.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["footfall", "kpiDefinition"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "dwell-time", "name": "Dwell Time", "definition": "The time visitors spend in the place or a zone per visit.", "characteristics": "A governed KPI: formula, grain and inclusion rules are owned under KPI Definition.", "relations": ["footfall", "kpiDefinition"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}]}, {"id": "reference", "name": "Reference & Classification", "color": "#6E6A5E", "intro": "Shared vocabularies the other categories depend on. Each scheme should have one owner, one authoritative version, and explicit mapping rules where local variants are unavoidable.", "concepts": [{"id": "spaceType", "name": "Space Type", "definition": "Classification of lettable space: inline, anchor, kiosk, F&B, leisure, storage, office.", "characteristics": "Space categories (leasable, common, service) are the structural subtypes of Space; finer granularity \u2014 technical room, loading bay, storage \u2014 lives here as type values rather than as new concepts. Distinct from merchandising category, which classifies the occupier.", "relations": ["media-specialty-leasing-unit", "non-lettable-area-built-environment-zone", "space"], "standards": "ICSC conventions", "pos": {"x": 395, "y": 1086}, "status": "flag", "tags": ["property"], "owner": ""}, {"id": "propertyFormat", "name": "Property Format", "definition": "Typology of retail assets: regional centre, community centre, retail park, outlet.", "characteristics": "Determines relevant benchmarks; differs by region \u2014 record the scheme used.", "relations": ["property"], "standards": "ICSC shopping centre definitions (US and Europe variants)", "standardsNote": "ICSC Shopping Center Definitions \u2014 US Variant: Published by ICSC (now operating under the tagline \"Innovating Commerce Serving Communities\"), this document establishes a typology of eight principal shopping center formats \u2014 including neighborhood, community, regional, superregional, fashion/specialty, power, theme/festival, and outlet centers \u2014 each differentiated by typical gross leasable area, anchor configuration, and trade area draw. It directly justifies the Property Format concept by providing the industry-standard named categories and quantitative boundaries that distinguish a regional centre from a community centre or an outlet, giving the information model its controlled vocabulary. It can be verified at the ICSC website; the document is titled \"US Shopping-Center Classification and Characteristics\" and is available at https://www.icsc.com/uploads/t07-subpage/US-Shopping-Center-Definition-Standard.pdf.\n\n\n\nICSC Shopping Centre Definitions \u2014 Europe Variant: Also published by ICSC, the companion document \"Europe Shopping-Centre Classification and Typical Characteristics\" adapts the typology for European markets, where format naming and physical configuration differ materially from the US model \u2014 most notably by formally defining the Retail Park as a distinct open-air format comprising predominantly medium- to large-scale specialist retailers, and by accommodating European size conventions measured in square metres of GLA. This variant justifies a separate citation because several Property Format values used by European mall operators \u2014 including retail park and outlet centre \u2014 carry definitions that diverge from their US counterparts in scope, sizing thresholds, and anchor logic, making the European standard necessary for cross-border consistency in the model. The document is available directly from ICSC at https://www.icsc.com/uploads/t07-subpage/Europe-Shopping-Center-Definition-Standard.pdf.", "pos": {"x": 274, "y": 61}, "status": "flag", "tags": ["property"], "owner": ""}, {"id": "geography", "name": "Geography", "definition": "Countries, regions, markets and administrative areas.", "characteristics": "Multiple hierarchies coexist (administrative, market, management); catchment geometries reference this backbone.", "relations": ["catchment", "land-site", "market-organization-split", "property"], "standards": "ISO 3166; NUTS (EU)", "pos": {"x": 205, "y": 154}}, {"id": "indexConcept", "name": "Index", "definition": "Published indices used in indexation clauses (CPI variants and national equivalents).", "characteristics": "Publication lag and rebasing must be modelled; a lease clause references a specific named index series.", "relations": ["leaseTerm"], "standards": "National statistics (e.g. SCB KPI in Sweden); HICP", "pos": {"x": 132, "y": 1349}}, {"id": "measurementStandard", "name": "Unit of Measure & Measurement Standard", "definition": "The declared basis on which any area or quantity is stated.", "characteristics": "Every area figure carries its standard; conversion between standards is explicit; mixed portfolios often carry legacy local measurements.", "relations": ["areaMeasurement", "building", "non-lettable-area-built-environment-zone", "space"], "standards": "IPMS; BOMA; SS 21054 (Sweden); RICS Property Measurement", "pos": {"x": 540, "y": 831}}, {"id": "timeCalendar", "name": "Time & Trading Calendar", "definition": "Periods, seasons, opening hours and event days used across measurements.", "characteristics": "Retail comparability depends on trading-day adjustment; holiday calendars differ by market.", "relations": ["campaign", "fiscal-year", "footfall", "reportedSales"], "standards": "ISO 8601", "pos": {"x": 122, "y": 335}}, {"id": "addressGeo", "name": "Address & Geolocation", "definition": "Postal addresses and geographic coordinates attached to properties, land, units and parties.", "characteristics": "One address may serve several objects and one object several addresses; coordinates carry a declared reference system; the anchor for mapping and catchment geometry.", "relations": ["land-parcel", "land-site", "property"], "standards": "ISO 19160; national address registers; IBPDI CDM (Address, GeoCoordinate)", "pos": {"x": 412, "y": 67}}, {"id": "personal-data", "name": "Personal Data", "definition": "The classification of data relating to identified or identifiable individuals.", "characteristics": "Drives lawful-basis, retention and access rules across every concept holding individual-level data; special categories need stricter handling.", "relations": ["individual", "loyaltyProgramme", "tenantComms"], "standards": "GDPR; ISO/IEC 27701", "tags": [], "status": "", "owner": ""}, {"id": "fiscal-year", "name": "Fiscal Year", "definition": "The organization's accounting year and its period calendar.", "characteristics": "May differ from the calendar year per entity; period close states matter for reporting; maps to the trading calendar for comparability.", "relations": ["budget", "internalOrg", "timeCalendar"], "standards": "\u2014", "tags": [], "status": "", "owner": ""}, {"id": "incident", "name": "Incident & Case", "definition": "An unplanned event requiring response and follow-up: safety, security, damage or operational disruption at a place.", "characteristics": "Typed and severity-graded; lifecycle from report through resolution; links to insurance claims, service requests and preventive maintenance; distinct from IT and digital service incidents, which belong to digital operations rather than this concept.", "relations": ["facility-service", "insurancePolicy", "property", "technicalAsset", "tenantComms"], "standards": "ISO 45001 (OH&S context)", "tags": [], "status": "green", "owner": ""}]}], "links": [{"s": "property", "t": "building", "kind": "hierarchy", "label": "contains"}, {"s": "valuation", "t": "property", "kind": "association", "label": "values"}, {"s": "ownership", "t": "property", "kind": "association", "label": "holds stake in"}, {"s": "property", "t": "catchment", "kind": "association", "label": ""}, {"s": "property", "t": "propertyFormat", "kind": "association", "label": ""}, {"s": "building", "t": "floorZone", "kind": "hierarchy", "label": "contains"}, {"s": "building", "t": "technicalAsset", "kind": "hierarchy", "label": "houses"}, {"s": "floorZone", "t": "space", "kind": "hierarchy", "label": "contains"}, {"s": "floorZone", "t": "footfall", "kind": "association", "label": ""}, {"s": "space", "t": "occupancy", "kind": "association", "label": ""}, {"s": "space", "t": "spaceType", "kind": "association", "label": ""}, {"s": "space", "t": "measurementStandard", "kind": "association", "label": ""}, {"s": "floorZone", "t": "commonArea", "kind": "hierarchy", "label": "contains"}, {"s": "commonArea", "t": "serviceChargePool", "kind": "association", "label": ""}, {"s": "commonArea", "t": "specialtyLease", "kind": "association", "label": ""}, {"s": "technicalAsset", "t": "utilityConsumption", "kind": "association", "label": ""}, {"s": "technicalAsset", "t": "supplierContract", "kind": "association", "label": ""}, {"s": "property", "t": "parking", "kind": "hierarchy", "label": "contains"}, {"s": "parking", "t": "technicalAsset", "kind": "association", "label": ""}, {"s": "parking", "t": "utilityConsumption", "kind": "association", "label": ""}, {"s": "parking", "t": "charge", "kind": "association", "label": ""}, {"s": "areaMeasurement", "t": "space", "kind": "association", "label": "measures"}, {"s": "areaMeasurement", "t": "building", "kind": "association", "label": ""}, {"s": "areaMeasurement", "t": "commonArea", "kind": "association", "label": ""}, {"s": "areaMeasurement", "t": "measurementStandard", "kind": "association", "label": ""}, {"s": "partyConcept", "t": "legalEntity", "kind": "hierarchy", "label": "subtype"}, {"s": "partyConcept", "t": "partyRole", "kind": "association", "label": ""}, {"s": "orgGroup", "t": "legalEntity", "kind": "hierarchy", "label": "comprises"}, {"s": "legalEntity", "t": "brand", "kind": "association", "label": "operates"}, {"s": "legalEntity", "t": "lease", "kind": "association", "label": ""}, {"s": "legalEntity", "t": "guarantee", "kind": "association", "label": ""}, {"s": "brand", "t": "occupancy", "kind": "association", "label": "traded as"}, {"s": "brand", "t": "merchCategory", "kind": "association", "label": ""}, {"s": "partyRole", "t": "agreement", "kind": "association", "label": ""}, {"s": "internalOrg", "t": "property", "kind": "association", "label": "accountable for"}, {"s": "internalOrg", "t": "budget", "kind": "association", "label": ""}, {"s": "internalOrg", "t": "legalEntity", "kind": "association", "label": ""}, {"s": "agreement", "t": "lease", "kind": "hierarchy", "label": "subtype"}, {"s": "agreement", "t": "specialtyLease", "kind": "hierarchy", "label": "subtype"}, {"s": "agreement", "t": "supplierContract", "kind": "hierarchy", "label": "subtype"}, {"s": "agreement", "t": "guarantee", "kind": "hierarchy", "label": "subtype"}, {"s": "lease", "t": "leaseTerm", "kind": "hierarchy", "label": "comprises"}, {"s": "lease", "t": "occupancy", "kind": "association", "label": ""}, {"s": "lease", "t": "charge", "kind": "association", "label": ""}, {"s": "leaseTerm", "t": "indexConcept", "kind": "association", "label": ""}, {"s": "leaseTerm", "t": "reportedSales", "kind": "association", "label": ""}, {"s": "leaseTerm", "t": "amendment", "kind": "association", "label": ""}, {"s": "amendment", "t": "lease", "kind": "association", "label": ""}, {"s": "specialtyLease", "t": "occupancy", "kind": "association", "label": ""}, {"s": "guarantee", "t": "lease", "kind": "association", "label": "secures"}, {"s": "guarantee", "t": "orgGroup", "kind": "association", "label": ""}, {"s": "supplierContract", "t": "serviceChargePool", "kind": "association", "label": ""}, {"s": "propertyRight", "t": "property", "kind": "association", "label": ""}, {"s": "propertyRight", "t": "ownership", "kind": "association", "label": ""}, {"s": "propertyRight", "t": "legalEntity", "kind": "association", "label": ""}, {"s": "agreement", "t": "insurancePolicy", "kind": "hierarchy", "label": "subtype"}, {"s": "insurancePolicy", "t": "property", "kind": "association", "label": "covers"}, {"s": "insurancePolicy", "t": "lease", "kind": "association", "label": ""}, {"s": "occupancy", "t": "merchCategory", "kind": "association", "label": "classified as"}, {"s": "reportedSales", "t": "occupancy", "kind": "association", "label": "reported for"}, {"s": "leasingDeal", "t": "brand", "kind": "association", "label": ""}, {"s": "leasingDeal", "t": "space", "kind": "association", "label": "targets"}, {"s": "leasingDeal", "t": "lease", "kind": "association", "label": ""}, {"s": "leasingDeal", "t": "vacancy", "kind": "association", "label": ""}, {"s": "vacancy", "t": "space", "kind": "association", "label": ""}, {"s": "vacancy", "t": "occupancy", "kind": "association", "label": ""}, {"s": "reportedSales", "t": "measurementSource", "kind": "association", "label": ""}, {"s": "reportedSales", "t": "occupancyCost", "kind": "association", "label": ""}, {"s": "occupancyCost", "t": "charge", "kind": "association", "label": ""}, {"s": "occupancyCost", "t": "kpiDefinition", "kind": "association", "label": ""}, {"s": "campaign", "t": "property", "kind": "association", "label": ""}, {"s": "campaign", "t": "footfall", "kind": "association", "label": ""}, {"s": "campaign", "t": "reportedSales", "kind": "association", "label": ""}, {"s": "campaign", "t": "charge", "kind": "association", "label": ""}, {"s": "loyaltyProgramme", "t": "campaign", "kind": "association", "label": ""}, {"s": "loyaltyProgramme", "t": "footfall", "kind": "association", "label": ""}, {"s": "loyaltyProgramme", "t": "reportedSales", "kind": "association", "label": ""}, {"s": "loyaltyProgramme", "t": "brand", "kind": "association", "label": ""}, {"s": "placeBrand", "t": "property", "kind": "association", "label": ""}, {"s": "placeBrand", "t": "campaign", "kind": "association", "label": ""}, {"s": "placeBrand", "t": "loyaltyProgramme", "kind": "association", "label": ""}, {"s": "leaseTerm", "t": "charge", "kind": "association", "label": "generates"}, {"s": "charge", "t": "receivable", "kind": "association", "label": ""}, {"s": "charge", "t": "serviceChargePool", "kind": "association", "label": ""}, {"s": "receivable", "t": "legalEntity", "kind": "association", "label": ""}, {"s": "serviceChargePool", "t": "lease", "kind": "association", "label": "allocated to"}, {"s": "budget", "t": "property", "kind": "association", "label": ""}, {"s": "budget", "t": "charge", "kind": "association", "label": ""}, {"s": "budget", "t": "capexProject", "kind": "association", "label": ""}, {"s": "capexProject", "t": "property", "kind": "association", "label": ""}, {"s": "capexProject", "t": "space", "kind": "association", "label": ""}, {"s": "capexProject", "t": "valuation", "kind": "association", "label": ""}, {"s": "valuation", "t": "lease", "kind": "association", "label": ""}, {"s": "valuation", "t": "ownership", "kind": "association", "label": ""}, {"s": "ownership", "t": "legalEntity", "kind": "association", "label": ""}, {"s": "fixedAsset", "t": "technicalAsset", "kind": "association", "label": "represents"}, {"s": "fixedAsset", "t": "building", "kind": "association", "label": ""}, {"s": "fixedAsset", "t": "capexProject", "kind": "association", "label": ""}, {"s": "fixedAsset", "t": "valuation", "kind": "association", "label": ""}, {"s": "footfall", "t": "property", "kind": "association", "label": ""}, {"s": "footfall", "t": "measurementSource", "kind": "association", "label": ""}, {"s": "footfall", "t": "catchment", "kind": "association", "label": ""}, {"s": "catchment", "t": "geography", "kind": "association", "label": ""}, {"s": "utilityConsumption", "t": "space", "kind": "association", "label": ""}, {"s": "utilityConsumption", "t": "esgMetric", "kind": "association", "label": ""}, {"s": "utilityConsumption", "t": "measurementSource", "kind": "association", "label": ""}, {"s": "esgMetric", "t": "property", "kind": "association", "label": ""}, {"s": "esgMetric", "t": "leaseTerm", "kind": "association", "label": ""}, {"s": "kpiDefinition", "t": "space", "kind": "association", "label": ""}, {"s": "kpiDefinition", "t": "occupancy", "kind": "association", "label": ""}, {"s": "comparabilityStatus", "t": "space", "kind": "association", "label": "qualifies"}, {"s": "comparabilityStatus", "t": "occupancy", "kind": "association", "label": ""}, {"s": "comparabilityStatus", "t": "kpiDefinition", "kind": "association", "label": ""}, {"s": "comparabilityStatus", "t": "property", "kind": "association", "label": ""}, {"s": "geography", "t": "property", "kind": "association", "label": ""}, {"s": "measurementStandard", "t": "building", "kind": "association", "label": ""}, {"s": "timeCalendar", "t": "footfall", "kind": "association", "label": ""}, {"s": "timeCalendar", "t": "reportedSales", "kind": "association", "label": ""}, {"s": "timeCalendar", "t": "campaign", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "property", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "building", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "floorZone", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "commonArea", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "areaMeasurement", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "spaceType", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "specialtyLease", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "occupancy", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "vacancy", "kind": "association", "label": ""}, {"s": "rentalUnit", "t": "space", "kind": "hierarchy", "label": "comprises"}, {"s": "lease", "t": "rentalUnit", "kind": "association", "label": "lets"}, {"s": "occupancy", "t": "rentalUnit", "kind": "association", "label": "trades in"}, {"s": "vacancy", "t": "rentalUnit", "kind": "association", "label": "state of"}, {"s": "glAccount", "t": "charge", "kind": "association", "label": "classifies"}, {"s": "addressGeo", "t": "property", "kind": "association", "label": "locates"}, {"s": "tenantComms", "t": "lease", "kind": "association", "label": "relates to"}, {"s": "floorZone", "t": "non-lettable-area-built-environment-zone", "kind": "hierarchy", "label": "contains"}, {"s": "non-lettable-area-built-environment-zone", "t": "commonArea", "kind": "association", "label": ""}, {"s": "space", "t": "non-lettable-area-built-environment-zone", "kind": "hierarchy", "label": "subtype"}, {"s": "non-lettable-area-built-environment-zone", "t": "areaMeasurement", "kind": "association", "label": ""}, {"s": "non-lettable-area-built-environment-zone", "t": "measurementStandard", "kind": "association", "label": ""}, {"s": "non-lettable-area-built-environment-zone", "t": "spaceType", "kind": "association", "label": ""}, {"s": "land-site", "t": "property", "kind": "hierarchy", "label": "contains"}, {"s": "land-site", "t": "building", "kind": "association", "label": ""}, {"s": "land-site", "t": "addressGeo", "kind": "association", "label": ""}, {"s": "land-site", "t": "geography", "kind": "association", "label": ""}, {"s": "land-parcel", "t": "property", "kind": "association", "label": ""}, {"s": "land-parcel", "t": "propertyRight", "kind": "association", "label": ""}, {"s": "land-parcel", "t": "ownership", "kind": "association", "label": ""}, {"s": "land-parcel", "t": "areaMeasurement", "kind": "association", "label": ""}, {"s": "land-parcel", "t": "addressGeo", "kind": "association", "label": ""}, {"s": "land-parcel", "t": "measurementSource", "kind": "association", "label": ""}, {"s": "land-site", "t": "land-parcel", "kind": "hierarchy", "label": "consists of"}, {"s": "digitalProduct", "t": "supplierContract", "kind": "association", "label": "procured via"}, {"s": "digitalProduct", "t": "fixedAsset", "kind": "association", "label": "capitalized as"}, {"s": "digitalProduct", "t": "tenantComms", "kind": "association", "label": "serves"}, {"s": "digitalProduct", "t": "measurementSource", "kind": "association", "label": ""}, {"s": "digitalProduct", "t": "campaign", "kind": "association", "label": ""}, {"s": "digitalProduct", "t": "loyaltyProgramme", "kind": "association", "label": ""}, {"s": "media-specialty-leasing-unit", "t": "rentalUnit", "kind": "association", "label": ""}, {"s": "property", "t": "infrastucture", "kind": "hierarchy", "label": "contains"}, {"s": "infrastucture", "t": "technicalAsset", "kind": "association", "label": ""}, {"s": "infrastucture", "t": "utilityConsumption", "kind": "association", "label": ""}, {"s": "sensor", "t": "technicalAsset", "kind": "association", "label": "mounted on"}, {"s": "sensor", "t": "measurementSource", "kind": "association", "label": "feeds"}, {"s": "sensor", "t": "footfall", "kind": "association", "label": ""}, {"s": "sensor", "t": "utilityConsumption", "kind": "association", "label": ""}, {"s": "partyConcept", "t": "individual", "kind": "hierarchy", "label": "subtype"}, {"s": "partyConcept", "t": "organization", "kind": "hierarchy", "label": "subtype"}, {"s": "organization", "t": "legalEntity", "kind": "association", "label": ""}, {"s": "business-domain", "t": "internalOrg", "kind": "association", "label": ""}, {"s": "market-organization-split", "t": "internalOrg", "kind": "association", "label": ""}, {"s": "market-organization-split", "t": "geography", "kind": "association", "label": ""}, {"s": "market-organization-split", "t": "property", "kind": "association", "label": ""}, {"s": "role-person-in-organization", "t": "individual", "kind": "association", "label": ""}, {"s": "role-person-in-organization", "t": "organization", "kind": "association", "label": ""}, {"s": "role-person-in-organization", "t": "partyRole", "kind": "association", "label": ""}, {"s": "individual", "t": "visitor-sub-type-of-individual", "kind": "hierarchy", "label": "subtype"}, {"s": "individual", "t": "partner-contact-sub-type-of-individual", "kind": "hierarchy", "label": "subtype"}, {"s": "individual", "t": "co-worker-sub-type-of-individual", "kind": "hierarchy", "label": "subtype"}, {"s": "individual", "t": "vendor-consultant-sub-type-of-individual", "kind": "hierarchy", "label": "subtype"}, {"s": "visitor-sub-type-of-individual", "t": "footfall", "kind": "association", "label": ""}, {"s": "visitor-sub-type-of-individual", "t": "loyaltyProgramme", "kind": "association", "label": ""}, {"s": "partner-contact-sub-type-of-individual", "t": "legalEntity", "kind": "association", "label": ""}, {"s": "partner-contact-sub-type-of-individual", "t": "tenantComms", "kind": "association", "label": ""}, {"s": "co-worker-sub-type-of-individual", "t": "internalOrg", "kind": "association", "label": ""}, {"s": "vendor-consultant-sub-type-of-individual", "t": "supplierContract", "kind": "association", "label": ""}, {"s": "agreement", "t": "employment-contract", "kind": "hierarchy", "label": "subtype"}, {"s": "employment-contract", "t": "co-worker-sub-type-of-individual", "kind": "association", "label": ""}, {"s": "employment-contract", "t": "internalOrg", "kind": "association", "label": ""}, {"s": "facility-service", "t": "supplierContract", "kind": "association", "label": "procured via"}, {"s": "facility-service", "t": "serviceChargePool", "kind": "association", "label": "costs feed"}, {"s": "facility-service", "t": "property", "kind": "association", "label": ""}, {"s": "facility-service", "t": "technicalAsset", "kind": "association", "label": ""}, {"s": "communication-marketing-plan", "t": "campaign", "kind": "hierarchy", "label": "comprises"}, {"s": "communication-marketing-plan", "t": "budget", "kind": "association", "label": ""}, {"s": "communication-marketing-plan", "t": "placeBrand", "kind": "association", "label": ""}, {"s": "intellectual-property", "t": "placeBrand", "kind": "association", "label": "protects"}, {"s": "intellectual-property", "t": "digitalProduct", "kind": "association", "label": ""}, {"s": "intellectual-property", "t": "fixedAsset", "kind": "association", "label": ""}, {"s": "exchange-rate", "t": "budget", "kind": "association", "label": ""}, {"s": "exchange-rate", "t": "receivable", "kind": "association", "label": ""}, {"s": "exchange-rate", "t": "glAccount", "kind": "association", "label": ""}, {"s": "interest-cost", "t": "budget", "kind": "association", "label": ""}, {"s": "interest-cost", "t": "glAccount", "kind": "association", "label": ""}, {"s": "interest-cost", "t": "ownership", "kind": "association", "label": ""}, {"s": "recoverability", "t": "serviceChargePool", "kind": "association", "label": ""}, {"s": "recoverability", "t": "charge", "kind": "association", "label": ""}, {"s": "recoverability", "t": "leaseTerm", "kind": "association", "label": ""}, {"s": "kpiDefinition", "t": "vacancy-ratio", "kind": "hierarchy", "label": "instance"}, {"s": "kpiDefinition", "t": "visitor-satisfaction", "kind": "hierarchy", "label": "instance"}, {"s": "kpiDefinition", "t": "partner-satisfaction", "kind": "hierarchy", "label": "instance"}, {"s": "kpiDefinition", "t": "brand-awareness", "kind": "hierarchy", "label": "instance"}, {"s": "kpiDefinition", "t": "cross-visit", "kind": "hierarchy", "label": "instance"}, {"s": "kpiDefinition", "t": "parner-tenant-visitation", "kind": "hierarchy", "label": "instance"}, {"s": "kpiDefinition", "t": "dwell-time", "kind": "hierarchy", "label": "instance"}, {"s": "vacancy-ratio", "t": "rentalUnit", "kind": "association", "label": ""}, {"s": "brand-awareness", "t": "placeBrand", "kind": "association", "label": ""}, {"s": "brand-awareness", "t": "catchment", "kind": "association", "label": ""}, {"s": "cross-visit", "t": "footfall", "kind": "association", "label": ""}, {"s": "parner-tenant-visitation", "t": "footfall", "kind": "association", "label": ""}, {"s": "dwell-time", "t": "footfall", "kind": "association", "label": ""}, {"s": "personal-data", "t": "individual", "kind": "association", "label": "classifies data about"}, {"s": "personal-data", "t": "loyaltyProgramme", "kind": "association", "label": ""}, {"s": "personal-data", "t": "tenantComms", "kind": "association", "label": ""}, {"s": "fiscal-year", "t": "timeCalendar", "kind": "association", "label": ""}, {"s": "fiscal-year", "t": "budget", "kind": "association", "label": ""}, {"s": "fiscal-year", "t": "internalOrg", "kind": "association", "label": ""}, {"s": "property", "t": "meeting-place", "kind": "association", "label": "qualifies as"}, {"s": "meeting-place", "t": "placeBrand", "kind": "association", "label": ""}, {"s": "meeting-place", "t": "visitor-experience", "kind": "association", "label": ""}, {"s": "physical-asset", "t": "fixedAsset", "kind": "association", "label": ""}, {"s": "physical-asset", "t": "property", "kind": "association", "label": ""}, {"s": "space", "t": "commonArea", "kind": "hierarchy", "label": "subtype"}, {"s": "capexProject", "t": "expansion-project", "kind": "hierarchy", "label": "subtype"}, {"s": "expansion-project", "t": "comparabilityStatus", "kind": "association", "label": ""}, {"s": "visitor-experience", "t": "property", "kind": "association", "label": "delivered at"}, {"s": "visitor-experience", "t": "campaign", "kind": "association", "label": ""}, {"s": "visitor-experience", "t": "loyaltyProgramme", "kind": "association", "label": ""}, {"s": "visitor-experience", "t": "facility-service", "kind": "association", "label": ""}, {"s": "visitor-experience", "t": "visitor-satisfaction", "kind": "association", "label": "measured by"}, {"s": "incident", "t": "property", "kind": "association", "label": ""}, {"s": "incident", "t": "tenantComms", "kind": "association", "label": ""}, {"s": "incident", "t": "insurancePolicy", "kind": "association", "label": "may trigger claim"}, {"s": "incident", "t": "facility-service", "kind": "association", "label": ""}, {"s": "incident", "t": "technicalAsset", "kind": "association", "label": ""}], "removed": ["company", "landParcel", "leasable-area", "marketing-charge", "new-concept", "service-cost"], "removedLinks": [], "schemaRev": 3, "seedVersion": 3};
+
+let model = JSON.parse(JSON.stringify(SEED));
+let selectedId = null;
+let activeTab = 'board';
+let dragState = null;
+let govOpen = false;
+
+function moveConcept(srcId, toCatId, beforeId){
+  const f = findConcept(srcId); if(!f) return;
+  const toCat = model.categories.find(c=>c.id===toCatId); if(!toCat) return;
+  const fromIdx = f.category.concepts.findIndex(k=>k.id===srcId); if(fromIdx<0) return;
+  const [item] = f.category.concepts.splice(fromIdx,1);
+  if(beforeId===null){ toCat.concepts.push(item); }
+  else{
+    const to = toCat.concepts.findIndex(k=>k.id===beforeId);
+    toCat.concepts.splice(to<0?toCat.concepts.length:to, 0, item);
+  }
+  persist(); render();
+  if(selectedId===srcId) select(srcId);
+}
+
+/* ---------- links: first-class connectors (kind: association | hierarchy) ---------- */
+const HIERARCHY = [
+  ['landParcel','property','contains'], ['property','building','contains'], ['property','parking','contains'],
+  ['building','floorZone','contains'], ['floorZone','space','contains'], ['building','commonArea','contains'],
+  ['building','technicalAsset','houses'], ['partyConcept','legalEntity','subtype'], ['orgGroup','legalEntity','comprises'],
+  ['agreement','lease','subtype'], ['agreement','specialtyLease','subtype'], ['agreement','supplierContract','subtype'],
+  ['agreement','guarantee','subtype'], ['agreement','insurancePolicy','subtype'], ['lease','leaseTerm','comprises'],
+  ['rentalUnit','space','comprises']
+];
+/* IBPDI-inspired verb labels for key associations (applied once; only where no label exists) */
+const ASSOC_LABELS = [
+  ['legalEntity','brand','operates'], ['lease','rentalUnit','lets'], ['occupancy','rentalUnit','trades in'],
+  ['brand','occupancy','traded as'], ['occupancy','merchCategory','classified as'],
+  ['leaseTerm','charge','generates'], ['serviceChargePool','lease','allocated to'],
+  ['valuation','property','values'], ['areaMeasurement','space','measures'],
+  ['reportedSales','occupancy','reported for'], ['guarantee','lease','secures'],
+  ['insurancePolicy','property','covers'], ['internalOrg','property','accountable for'],
+  ['ownership','property','holds stake in'], ['propertyRight','landParcel','registered on'],
+  ['leasingDeal','space','targets'], ['fixedAsset','technicalAsset','represents'],
+  ['comparabilityStatus','space','qualifies'], ['vacancy','rentalUnit','state of'],
+  ['glAccount','charge','classifies'], ['addressGeo','property','locates'], ['tenantComms','lease','relates to']
+];
+/* pairs retired by model revisions (lease now connects to space via rental unit) */
+const RETIRED_LINKS = [ ['lease','space'] ];
+/* rev 3: concepts relocated to the Intangible & Digital Assets category, plus Digital Product's links */
+const MOVES_R3 = [ ['placeBrand','intangible'], ['loyaltyProgramme','intangible'] ];
+const NEW_LINKS_R3 = [
+  ['digitalProduct','supplierContract','procured via'], ['digitalProduct','fixedAsset','capitalized as'],
+  ['digitalProduct','tenantComms','serves'], ['digitalProduct','measurementSource',''],
+  ['digitalProduct','campaign',''], ['digitalProduct','loyaltyProgramme','']
+];
+const SCHEMA_REV = 3;
+function conceptExists(id){ return !!findConcept(id); }
+function pairKey(a,b){ return [a,b].sort().join('|'); }
+function migrate(){
+  if(!Array.isArray(model.links)){
+    model.links = []; const seen = new Set();
+    for(const c of model.categories) for(const k of c.concepts) for(const r of (k.relations||[])){
+      if(!conceptExists(r) || seen.has(pairKey(k.id,r))) continue;
+      seen.add(pairKey(k.id,r));
+      model.links.push({ s:k.id, t:r, kind:'association', label:'' });
+    }
+  }
+  if(!Array.isArray(model.removed)) model.removed = [];
+  if(!Array.isArray(model.removedLinks)) model.removedLinks = [];
+  const rev = model.schemaRev||1;
+  const skip = new Set(model.removedLinks);
+  const upsertLink = (a,b,kind,lbl)=>{
+    if(!conceptExists(a) || !conceptExists(b) || skip.has(pairKey(a,b))) return;
+    const ex = model.links.find(l=>pairKey(l.s,l.t)===pairKey(a,b));
+    if(ex){
+      if(kind==='hierarchy' && ex.kind!=='hierarchy'){ ex.kind='hierarchy'; ex.s=a; ex.t=b; if(!ex.label) ex.label=lbl; }
+      else if(kind==='association' && ex.kind==='association' && !ex.label){ ex.s=a; ex.t=b; ex.label=lbl; }
+    }
+    else model.links.push({ s:a, t:b, kind, label:lbl });
+  };
+  if(rev < 2){
+    for(const [a,b] of RETIRED_LINKS){
+      model.links = model.links.filter(l=>pairKey(l.s,l.t)!==pairKey(a,b));
+    }
+    for(const [p,ch,lbl] of HIERARCHY) upsertLink(p,ch,'hierarchy',lbl);
+    for(const [a,b,lbl] of ASSOC_LABELS) upsertLink(a,b,'association',lbl);
+  }
+  if(rev < 3){
+    for(const [cid,target] of MOVES_R3){
+      const f = findConcept(cid);
+      const tcat = model.categories.find(c=>c.id===target);
+      if(f && tcat && f.category.id!==target){
+        f.category.concepts = f.category.concepts.filter(x=>x.id!==cid);
+        tcat.concepts.push(f.concept);
+      }
+    }
+    for(const [a,b,lbl] of NEW_LINKS_R3) upsertLink(a,b,'association',lbl);
+  }
+  model.schemaRev = SCHEMA_REV;
+  model.links = model.links.filter(l=>conceptExists(l.s)&&conceptExists(l.t)&&l.s!==l.t);
+  syncRelations();
+}
+function syncRelations(){
+  const map = {};
+  model.links.forEach(l=>{ (map[l.s]=map[l.s]||new Set()).add(l.t); (map[l.t]=map[l.t]||new Set()).add(l.s); });
+  for(const c of model.categories) for(const k of c.concepts) k.relations = [...(map[k.id]||[])];
+}
+function linksOf(id){ return model.links.filter(l=>l.s===id||l.t===id); }
+function addLink(a,b,kind='association',label=''){
+  if(a===b || !conceptExists(a) || !conceptExists(b)) return;
+  if(model.links.some(l=>pairKey(l.s,l.t)===pairKey(a,b))) return;
+  model.links.push({ s:a, t:b, kind, label });
+  if(Array.isArray(model.removedLinks)) model.removedLinks = model.removedLinks.filter(k=>k!==pairKey(a,b));
+  syncRelations();
+}
+function removeLinkBetween(a,b){
+  model.links = model.links.filter(l=>pairKey(l.s,l.t)!==pairKey(a,b));
+  (model.removedLinks = model.removedLinks || []).push(pairKey(a,b));
+  syncRelations();
+}
+/* seed additions (new concepts shipped in this file) are merged into a stored model,
+   unless the user deleted them on purpose */
+function mergeSeed(){
+  const removed = new Set(model.removed||[]);
+  SEED.categories.forEach((sc, i)=>{
+    let cat = model.categories.find(c=>c.id===sc.id);
+    if(!cat){
+      cat = JSON.parse(JSON.stringify(sc)); cat.concepts=[];
+      model.categories.splice(Math.min(i, model.categories.length), 0, cat);
+    }
+    for(const k of sc.concepts){
+      if(!removed.has(k.id) && !findConcept(k.id)) cat.concepts.push(JSON.parse(JSON.stringify(k)));
+    }
+  });
+}
+
+const $ = s => document.querySelector(s);
+const board = $('#board');
+const STATUS_META = { green:['●','#2E7D3A','accepted'], yellow:['●','#D9A400','to discuss'], black:['●','#22272C','parked'], flag:['⚑','#A3341F','contested'] };
+
+document.getElementById('tbDate').textContent = new Date().toISOString().slice(0,10);
+
+/* ---------- persistence (best effort; falls back to in-memory) ---------- */
+async function persist(){
+  try{ if(window.storage) await window.storage.set('eim-model', JSON.stringify(model)); }catch(e){}
+}
+async function restore(){
+  try{
+    if(window.storage){
+      const r = await window.storage.get('eim-model');
+      if(r && r.value){
+        const stored = JSON.parse(r.value);
+        if((stored.seedVersion||1) < (SEED.seedVersion||1)){
+          // the file ships a newer baked-in model (from a JSON round-trip) — adopt it
+          model = JSON.parse(JSON.stringify(SEED));
+          persist();
+        }else{
+          model = stored;
+          mergeSeed();
+        }
+      }
+    }
+  }catch(e){}
+}
+
+/* ---------- helpers ---------- */
+function allConcepts(){ return model.categories.flatMap(c => c.concepts.map(k => ({...k, catId:c.id, catName:c.name, color:c.color}))); }
+function findConcept(id){
+  for(const c of model.categories){ const k = c.concepts.find(x=>x.id===id); if(k) return {concept:k, category:c}; }
+  return null;
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function slug(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || ('c'+Date.now()); }
+
+/* ---------- render ---------- */
+function render(){
+  board.innerHTML='';
+  for(const cat of model.categories){
+    const band = document.createElement('section');
+    band.className='band'; band.style.setProperty('--cat', cat.color);
+    band.innerHTML = `
+      <div class="spine"><span class="bar"></span><span class="vlabel">${cat.name}</span></div>
+      <div class="band-body">
+        <div class="band-head"><h2>${cat.name}</h2><span class="count">${cat.concepts.length} concepts</span><button class="btn cat-edit">edit area</button></div>
+        <p class="band-intro">${cat.intro}</p>
+        <div class="cards"></div>
+      </div>`;
+    const grid = band.querySelector('.cards');
+    for(const k of cat.concepts){
+      const card = document.createElement('button');
+      card.className='card' + (k.tier==='secondary'?' tier-secondary':k.tier==='other'?' tier-other':'');
+      card.dataset.id=k.id; card.style.setProperty('--cat', cat.color);
+      const shownDef = (k.finalDefinition && k.finalDefinition.trim()) ? k.finalDefinition : k.definition;
+      card.innerHTML = `<h3>${k.name}</h3><p>${shownDef||''}</p>
+        <span class="foot"><span>${k.relations.length} links</span><span>·</span><span>${k.standards && k.standards!=='—' ? 'std ✓' : 'no std'}</span>${(k.tags&&k.tags.length)?'<span>·</span><span class="tagline">'+k.tags.map(t=>'#'+t).join(' ')+'</span>':''}</span>`;
+      const DATA_ABBR = { master:'MASTER', transactional:'TXN', reference:'REF', analytical:'ANALYTICAL' };
+      const meta = [];
+      if(k.sor && k.sor.trim()) meta.push(`<span class="m-sor" title="System of record">▤ ${esc(k.sor.trim())}</span>`);
+      if(k.owner && k.owner.trim()) meta.push(`<span class="m-owner" title="Designated owner">${esc(k.owner.trim())}</span>`);
+      if(k.dataCategory && DATA_ABBR[k.dataCategory]) meta.push(`<span class="m-data" title="Data category">${DATA_ABBR[k.dataCategory]}</span>`);
+      if(meta.length){
+        card.classList.add('has-meta');
+        const bar = document.createElement('span');
+        bar.className='metabar';
+        bar.innerHTML = meta.join('<span class="msep">·</span>');
+        card.appendChild(bar);
+      }
+      card.addEventListener('click', ()=> select(k.id));
+      /* review status marker: click to cycle none → green → yellow → black → flag */
+      const cur = k.status && STATUS_META[k.status] ? k.status : '';
+      const st = document.createElement('span');
+      st.className = 'status' + (cur ? '' : ' none');
+      st.textContent = cur ? STATUS_META[cur][0] : '○';
+      st.style.color = cur ? STATUS_META[cur][1] : 'inherit';
+      st.title = cur ? 'Review status: '+STATUS_META[cur][2]+' (click to change)' : 'Set review status';
+      st.setAttribute('role','button');
+      st.addEventListener('click', e=>{
+        e.stopPropagation();
+        const order = ['','green','yellow','black','flag'];
+        k.status = order[(order.indexOf(cur)+1) % order.length];
+        persist(); render(); if(selectedId===k.id) select(k.id);
+      });
+      card.appendChild(st);
+      /* drag to reorder within the same category */
+      card.draggable = true;
+      card.addEventListener('dragstart', e=>{
+        dragState = { id:k.id, cat:cat.id };
+        e.dataTransfer.effectAllowed = 'move';
+        try{ e.dataTransfer.setData('text/plain', k.id); }catch(err){}
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', ()=>{ card.classList.remove('dragging'); dragState=null; board.querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target')); });
+      card.addEventListener('dragover', e=>{
+        if(dragState && dragState.id!==k.id){
+          e.preventDefault(); e.dataTransfer.dropEffect='move'; card.classList.add('drop-target');
+        }
+      });
+      card.addEventListener('dragleave', ()=> card.classList.remove('drop-target'));
+      card.addEventListener('drop', e=>{
+        e.preventDefault(); card.classList.remove('drop-target');
+        if(dragState && dragState.id!==k.id) moveConcept(dragState.id, cat.id, k.id);
+      });
+      grid.appendChild(card);
+    }
+    const add = document.createElement('button');
+    add.className='add-card'; add.textContent='+ add concept';
+    add.addEventListener('click', ()=> addConcept(cat.id));
+    add.addEventListener('dragover', e=>{
+      if(dragState){ e.preventDefault(); e.dataTransfer.dropEffect='move'; add.classList.add('drop-target'); }
+    });
+    add.addEventListener('dragleave', ()=> add.classList.remove('drop-target'));
+    add.addEventListener('drop', e=>{
+      e.preventDefault(); add.classList.remove('drop-target');
+      if(dragState) moveConcept(dragState.id, cat.id, null);
+    });
+    grid.appendChild(add);
+    band.querySelector('.cat-edit').addEventListener('click', ()=> openCatDialog(cat.id));
+    board.appendChild(band);
+  }
+  const addCat = document.createElement('button');
+  addCat.className='add-cat'; addCat.textContent='+ add category';
+  addCat.addEventListener('click', ()=> openCatDialog(null));
+  board.appendChild(addCat);
+  applyFilter();
+  highlight();
+  if(activeTab==='diagram') rebuildGraph();
+}
+
+function highlight(){
+  const cards = board.querySelectorAll('.card');
+  if(!selectedId){ cards.forEach(c=>c.classList.remove('selected','related','dim')); return; }
+  const f = findConcept(selectedId);
+  const relSet = new Set(f ? f.concept.relations : []);
+  cards.forEach(c=>{
+    c.classList.toggle('selected', c.dataset.id===selectedId);
+    c.classList.toggle('related', relSet.has(c.dataset.id));
+    c.classList.toggle('dim', c.dataset.id!==selectedId && !relSet.has(c.dataset.id));
+  });
+}
+
+/* ---------- panel ---------- */
+function select(id){
+  selectedId = id;
+  deleteArmed = null; const db = $('#deleteBtn'); if(db) db.textContent = 'Delete concept';
+  const f = findConcept(id); if(!f) return;
+  const {concept:k, category:c} = f;
+  $('#p-dot').style.setProperty('--cat', c.color); $('#p-dot').style.background=c.color;
+  $('#p-where').textContent = c.name;
+  $('#f-name').value = k.name;
+  $('#f-def').value = k.definition;
+  $('#f-final').value = k.finalDefinition || '';
+  $('#f-tier').value = k.tier || '';
+  $('#f-char').value = k.characteristics;
+  $('#f-std').value = k.standards;
+  $('#f-tags').value = (k.tags||[]).map(t=>'#'+t).join(', ');
+  $('#f-status').value = k.status && STATUS_META[k.status] ? k.status : '';
+  $('#f-owner').value = k.owner || '';
+  $('#f-sor').value = k.sor || '';
+  $('#f-datacat').value = k.dataCategory || '';
+  $('#govToggle').setAttribute('aria-expanded', govOpen ? 'true' : 'false');
+  $('#govBody').hidden = !govOpen;
+  const sel = $('#f-cat'); sel.innerHTML='';
+  model.categories.forEach(cc=>{ const o=document.createElement('option'); o.value=cc.id; o.textContent=cc.name; if(cc.id===c.id)o.selected=true; sel.appendChild(o); });
+  renderRelChips(k);
+  showRefNote(k);
+  $('#explainStatus').textContent='';
+  $('#panel').classList.add('open');
+  if(activeTab!=='diagram') $('#overlay').classList.add('show');
+  highlight();
+  applyFocus();
+}
+
+function renderRelChips(k){
+  const wrap = $('#f-rels'); wrap.innerHTML='';
+  k.relations.forEach(rid=>{
+    const r = findConcept(rid); if(!r) return;
+    const chip = document.createElement('span'); chip.className='chip';
+    chip.innerHTML = `<span class="dot" style="background:${r.category.color}"></span>${r.concept.name}<button class="x" title="Remove relation" aria-label="Remove relation to ${r.concept.name}">✕</button>`;
+    chip.querySelector('.x').addEventListener('click', ()=>{ removeLinkBetween(k.id, rid); renderRelChips(k); highlight(); persist(); if(activeTab==='diagram') rebuildGraph(); });
+    chip.addEventListener('click', e=>{ if(e.target.classList.contains('x'))return; select(rid); document.querySelector(`.card[data-id="${rid}"]`)?.scrollIntoView({block:'center'}); });
+    wrap.appendChild(chip);
+  });
+  const add = document.createElement('button'); add.className='chip add-rel'; add.textContent='+ link';
+  add.addEventListener('click', ()=> openRelPicker(k));
+  wrap.appendChild(add);
+}
+
+function openRelPicker(k){
+  const list = $('#relList'); list.innerHTML='';
+  allConcepts().filter(x=>x.id!==k.id && !k.relations.includes(x.id))
+    .sort((a,b)=>a.name.localeCompare(b.name))
+    .forEach(x=>{
+      const b=document.createElement('button');
+      b.innerHTML=`<span class="dot" style="width:9px;height:9px;border-radius:50%;background:${x.color}"></span>${x.name} <span style="color:var(--ink-soft);font-size:11px;margin-left:auto">${x.catName}</span>`;
+      b.addEventListener('click', ()=>{ addLink(k.id, x.id); $('#relPicker').close(); renderRelChips(k); highlight(); persist(); if(activeTab==='diagram') rebuildGraph(); });
+      list.appendChild(b);
+    });
+  $('#relPicker').showModal();
+}
+
+function closePanel(){
+  selectedId=null;
+  $('#panel').classList.remove('open'); $('#overlay').classList.remove('show');
+  highlight();
+  applyFocus();
+}
+
+$('#govToggle').addEventListener('click', ()=>{
+  govOpen = !govOpen;
+  $('#govToggle').setAttribute('aria-expanded', govOpen ? 'true' : 'false');
+  $('#govBody').hidden = !govOpen;
+});
+
+$('#saveBtn').addEventListener('click', ()=>{
+  const f = findConcept(selectedId); if(!f) return;
+  const {concept:k, category:c} = f;
+  k.name = $('#f-name').value.trim() || k.name;
+  if(k.id.startsWith('new-concept') && k.name !== 'New concept'){
+    let nid = slug(k.name); while(findConcept(nid)) nid += '-2';
+    const oid = k.id; k.id = nid;
+    model.links.forEach(l=>{ if(l.s===oid) l.s=nid; if(l.t===oid) l.t=nid; });
+    syncRelations();
+    selectedId = nid;
+  }
+  k.definition = $('#f-def').value.trim();
+  k.finalDefinition = $('#f-final').value.trim();
+  k.tier = $('#f-tier').value;
+  k.characteristics = $('#f-char').value.trim();
+  k.standards = $('#f-std').value.trim() || '—';
+  k.tags = [...new Set($('#f-tags').value.split(/[,;]+/).map(t=>t.trim().replace(/^#+/,'').toLowerCase().replace(/\s+/g,'-')).filter(Boolean))];
+  k.status = $('#f-status').value;
+  k.owner = $('#f-owner').value.trim();
+  k.sor = $('#f-sor').value.trim();
+  k.dataCategory = $('#f-datacat').value;
+  const newCat = $('#f-cat').value;
+  if(newCat !== c.id){
+    c.concepts = c.concepts.filter(x=>x.id!==k.id);
+    model.categories.find(x=>x.id===newCat).concepts.push(k);
+  }
+  persist(); render(); select(k.id); toast('Saved');
+});
+
+let deleteArmed = null;
+$('#deleteBtn').addEventListener('click', ()=>{
+  const f = findConcept(selectedId); if(!f) return;
+  const btn = $('#deleteBtn');
+  if(deleteArmed !== selectedId){
+    deleteArmed = selectedId;
+    btn.textContent = 'Confirm delete?';
+    setTimeout(()=>{ if(deleteArmed===selectedId){ deleteArmed=null; btn.textContent='Delete concept'; } }, 3500);
+    return;
+  }
+  deleteArmed = null; btn.textContent = 'Delete concept';
+  const id = f.concept.id;
+  f.category.concepts = f.category.concepts.filter(x=>x.id!==id);
+  model.links = model.links.filter(l=>l.s!==id && l.t!==id);
+  (model.removed = model.removed || []).push(id);
+  syncRelations();
+  closePanel(); persist(); render(); toast('Concept deleted');
+});
+
+function addConcept(catId){
+  const cat = model.categories.find(c=>c.id===catId);
+  let id = 'new-concept', n = 1;
+  while(findConcept(id)) id = 'new-concept-' + (++n);
+  const k = { id, name:'New concept', definition:'', characteristics:'', relations:[], standards:'—' };
+  cat.concepts.push(k); persist(); render(); select(k.id);
+  const nm = $('#f-name'); nm.focus(); nm.select();
+}
+
+/* ---------- search ---------- */
+function applyFilter(){
+  const q = $('#searchInput').value.trim().toLowerCase();
+  board.querySelectorAll('.card').forEach(c=>{
+    const f = findConcept(c.dataset.id); if(!f) return;
+    const hay = (f.concept.name+' '+f.concept.definition+' '+(f.concept.finalDefinition||'')+' '+f.concept.characteristics+' '+f.concept.standards+' '+(f.concept.owner||'')+' '+(f.concept.sor||'')+' '+(f.concept.dataCategory||'')+' '+(f.concept.tags||[]).map(t=>'#'+t).join(' ')).toLowerCase();
+    c.classList.toggle('hidden', q && !hay.includes(q));
+  });
+}
+$('#searchInput').addEventListener('input', applyFilter);
+
+/* ---------- import / export ---------- */
+$('#exportBtn').addEventListener('click', async ()=>{
+  const jsonStr = JSON.stringify(model,null,2);
+  let downloaded = false;
+  try{
+    const blob = new Blob([jsonStr], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download='eim_concept_model.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    downloaded = true;
+  }catch(err){ downloaded = false; }
+  if(downloaded){ toast('Exported eim_concept_model.json'); return; }
+  // fallback: try clipboard directly, and always show the copyable dialog too
+  try{ await navigator.clipboard.writeText(jsonStr); toast('Download blocked — JSON copied to clipboard instead'); }
+  catch(err){ /* clipboard blocked too, dialog below is the fallback */ }
+  $('#exportText').value = jsonStr;
+  $('#exportDialog').showModal();
+});
+$('#exportClose').addEventListener('click', ()=> $('#exportDialog').close());
+$('#exportSelectAll').addEventListener('click', ()=>{ $('#exportText').focus(); $('#exportText').select(); });
+$('#exportCopy').addEventListener('click', async ()=>{
+  const ta = $('#exportText'); ta.focus(); ta.select();
+  try{ await navigator.clipboard.writeText(ta.value); toast('Copied to clipboard'); }
+  catch(err){ try{ document.execCommand('copy'); toast('Copied to clipboard'); }catch(e2){ toast('Copy failed — select the text manually'); } }
+});
+$('#importBtn').addEventListener('click', ()=> $('#importFile').click());
+$('#importFile').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{ model = JSON.parse(r.result); migrate(); closePanel(); persist(); render(); toast('Model imported'); }catch(err){ toast('Import failed: not valid JSON'); } };
+  r.readAsText(file);
+});
+$('#printBtn').addEventListener('click', ()=>{
+  try{
+    if(typeof window.print !== 'function') throw new Error('print unavailable');
+    window.print();
+  }catch(err){
+    toast('Print blocked here — open this file in a full browser tab, then use Ctrl/Cmd+P');
+  }
+});
+
+$('#closePanel').addEventListener('click', closePanel);
+$('#overlay').addEventListener('click', closePanel);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('#relPicker').open) $('#relPicker').close(); else closePanel(); } });
+
+/* ---------- AI assist (works when opened inside Claude) ---------- */
+async function callClaude(prompt){
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user", content:prompt}] })
+  });
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const data = await res.json();
+  return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+}
+function parseAiJson(text){
+  return JSON.parse(text.replace(/```json|```/gi,"").trim());
+}
+function modelDigest(){
+  return model.categories.map(c=>
+    `${c.id} — ${c.name}:\n` + c.concepts.map(k=>`  ${k.id}: ${k.name} — ${k.definition}`).join("\n")
+  ).join("\n");
+}
+const AI_CONTEXT = "You are helping maintain a technology-agnostic enterprise information model (conceptual level) for a real estate organization focused on shopping malls. Concepts must be business concepts, not tables or systems. Established modelling decisions that must be respected: Brand, Legal Entity and Organization Group are separate concepts; Occupancy is distinct from Lease; physical space is effective-dated; every measurement carries source and quality status.";
+
+/* ----- suggest & add concepts ----- */
+const aiDialog = $('#aiDialog');
+$('#aiBtn').addEventListener('click', ()=>{ $('#aiResults').innerHTML=''; $('#aiStatus').textContent=''; aiDialog.showModal(); $('#aiPrompt').focus(); });
+$('#aiClose').addEventListener('click', ()=> aiDialog.close());
+document.querySelectorAll('.ai-examples button').forEach(b=> b.addEventListener('click', ()=>{ $('#aiPrompt').value = b.dataset.ex; }));
+
+$('#aiGo').addEventListener('click', async ()=>{
+  const ask = $('#aiPrompt').value.trim();
+  if(!ask){ $('#aiStatus').textContent='Type a request first.'; return; }
+  const status = $('#aiStatus'); const results = $('#aiResults');
+  status.className='ai-status'; status.innerHTML='<span class="spin"></span> Thinking…'; results.innerHTML='';
+  $('#aiGo').disabled = true;
+  try{
+    const catIds = model.categories.map(c=>c.id).join(", ");
+    const prompt = `${AI_CONTEXT}
+
+Current model (category id — name, then concept id: name — definition):
+${modelDigest()}
+
+User request: ${ask}
+
+Propose at most 3 concepts (new ones, or improved replacements for existing ones if the user asked to improve). Respond with ONLY a JSON object, no preamble, no markdown fences, in exactly this shape:
+{"concepts":[{"name":"...","categoryId":"one of: ${catIds}","definition":"one sentence","characteristics":"2-3 key characteristics, semicolon-separated","relations":["existing concept ids only"],"standards":"relevant industry standards or a dash"}]}
+Keep each field concise. relations must only use concept ids that exist in the model above.`;
+    const raw = await callClaude(prompt);
+    const parsed = parseAiJson(raw);
+    const list = (parsed.concepts||[]).slice(0,5);
+    if(!list.length){ status.textContent='No proposals returned — try rephrasing.'; return; }
+    status.textContent = list.length + ' proposal' + (list.length>1?'s':'') + ' — accept the ones you want:';
+    list.forEach(p=> results.appendChild(proposalCard(p)));
+  }catch(err){
+    status.className='ai-status err';
+    status.textContent = 'AI request failed — this feature works when the file is opened inside Claude. (' + err.message + ')';
+  }finally{ $('#aiGo').disabled = false; }
+});
+
+function proposalCard(p){
+  const cat = model.categories.find(c=>c.id===p.categoryId) || model.categories[0];
+  const validRels = (p.relations||[]).filter(r=>findConcept(r));
+  const card = document.createElement('div');
+  card.className='proposal'; card.style.setProperty('--cat', cat.color);
+  const relNames = validRels.map(r=>findConcept(r).concept.name).join('; ') || '—';
+  card.innerHTML = `<span class="where">${cat.name}</span><h4>${p.name||'Unnamed'}</h4>
+    <p><strong>Definition:</strong> ${p.definition||'—'}</p>
+    <p><strong>Characteristics:</strong> ${p.characteristics||'—'}</p>
+    <p><strong>Relations:</strong> ${relNames} &nbsp;·&nbsp; <strong>Standards:</strong> ${p.standards||'—'}</p>
+    <div class="prow"><button class="btn primary acc">Add to model</button><button class="btn dis">Dismiss</button></div>`;
+  card.querySelector('.acc').addEventListener('click', ()=>{
+    const existing = allConcepts().find(x=>x.name.toLowerCase()===String(p.name).toLowerCase());
+    if(existing){
+      // update in place rather than duplicate
+      const f = findConcept(existing.id);
+      f.concept.definition = p.definition||f.concept.definition;
+      f.concept.characteristics = p.characteristics||f.concept.characteristics;
+      f.concept.standards = p.standards||f.concept.standards;
+      validRels.forEach(r=> addLink(f.concept.id, r));
+      toast('Updated existing concept: '+f.concept.name);
+    }else{
+      let id = slug(p.name); while(findConcept(id)) id += '-2';
+      cat.concepts.push({ id, name:p.name, definition:p.definition||'', characteristics:p.characteristics||'', relations:[], standards:p.standards||'—' });
+      validRels.forEach(r=> addLink(id, r));
+      toast('Added: '+p.name);
+    }
+    persist(); render();
+    card.classList.add('accepted');
+    card.querySelector('.acc').disabled = true; card.querySelector('.acc').textContent='Added ✓';
+  });
+  card.querySelector('.dis').addEventListener('click', ()=> card.remove());
+  return card;
+}
+
+/* ----- refine selected concept ----- */
+$('#refineBtn').addEventListener('click', async ()=>{
+  const f = findConcept(selectedId); if(!f) return;
+  const k = f.concept;
+  const instr = $('#f-ai-instr').value.trim();
+  const status = $('#refineStatus');
+  status.className='ai-status'; status.innerHTML='<span class="spin"></span> Refining…';
+  $('#refineBtn').disabled = true;
+  try{
+    const prompt = `${AI_CONTEXT}
+
+Refine this single concept from the model. Improve precision and industry grounding; keep it conceptual and concise.
+Concept: ${k.name} (category: ${f.category.name})
+Current definition: ${k.definition}
+Current characteristics: ${k.characteristics}
+Current standards: ${k.standards}
+${instr ? 'User instruction: '+instr : 'No specific instruction — improve clarity and completeness.'}
+
+Respond with ONLY a JSON object, no preamble, no markdown fences:
+{"definition":"one sentence","characteristics":"2-4 key characteristics, semicolon-separated","standards":"relevant industry standards or a dash"}`;
+    const parsed = parseAiJson(await callClaude(prompt));
+    if(parsed.definition) $('#f-def').value = parsed.definition;
+    if(parsed.characteristics) $('#f-char').value = parsed.characteristics;
+    if(parsed.standards) $('#f-std').value = parsed.standards;
+    status.textContent = 'Proposal loaded into the fields — review, edit, then Save changes to keep it.';
+  }catch(err){
+    status.className='ai-status err';
+    status.textContent = 'AI request failed — works when opened inside Claude. (' + err.message + ')';
+  }finally{ $('#refineBtn').disabled = false; }
+});
+
+/* ----- explain standard references (web-search grounded) ----- */
+function showRefNote(k){
+  const n = $('#refNote');
+  if(k.standardsNote){
+    n.hidden = false;
+    n.innerHTML = '<span class="src-tag">AI-generated justification · saved with the model</span>';
+    n.appendChild(document.createTextNode(k.standardsNote));
+    $('#explainBtn').textContent = '◈ Regenerate explanation';
+  }else{
+    n.hidden = true; n.textContent = '';
+    $('#explainBtn').textContent = '◈ Explain references';
+  }
+}
+
+$('#explainBtn').addEventListener('click', async ()=>{
+  const f = findConcept(selectedId); if(!f) return;
+  const k = f.concept;
+  const stds = $('#f-std').value.trim();
+  const status = $('#explainStatus');
+  if(!stds || stds==='—'){ status.textContent='No standards listed for this concept.'; return; }
+  status.className='ai-status'; status.innerHTML='<span class="spin"></span> Looking up the cited standards…';
+  $('#explainBtn').disabled = true;
+  try{
+    const prompt = `${AI_CONTEXT}
+
+In the model, the concept "${k.name}" (${f.category.name}) is defined as: ${k.definition}
+Its cited industry standards are: ${stds}
+
+For EACH cited standard, write one short paragraph (2-3 sentences, plain text, prefixed by the standard's name and a colon) covering: what the standard establishes that is relevant to this specific concept, why it justifies the citation, and where to verify it (publisher, document title, and section or part if known — include the official URL when you can find it). Use web search to verify current names, versions and publishers. Paraphrase in your own words; do not reproduce verbatim text from the standards. No preamble, no markdown formatting — just the paragraphs separated by blank lines.`;
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-6", max_tokens:1000,
+        messages:[{role:"user", content:prompt}],
+        tools:[{ type:"web_search_20250305", name:"web_search" }]
+      })
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+    if(!text) throw new Error("empty response");
+    k.standardsNote = text;
+    persist(); showRefNote(k);
+    status.textContent = '';
+  }catch(err){
+    status.className='ai-status err';
+    status.textContent = 'Lookup failed — works when opened inside Claude. (' + err.message + ')';
+  }finally{ $('#explainBtn').disabled = false; }
+});
+
+/* ---------- category (sub-area) create / edit ---------- */
+let editingCat = null, catDeleteArmed = false;
+function openCatDialog(catId){
+  editingCat = catId ? model.categories.find(c=>c.id===catId) : null;
+  catDeleteArmed = false;
+  $('#cd-title').textContent = editingCat ? 'Edit sub-area' : 'New sub-area';
+  $('#cd-name').value = editingCat ? editingCat.name : '';
+  $('#cd-color').value = editingCat ? editingCat.color : '#6E6A5E';
+  $('#cd-intro').value = editingCat ? (editingCat.intro||'') : '';
+  const del = $('#cd-delete');
+  del.textContent = 'Delete area';
+  del.style.display = editingCat ? '' : 'none';
+  $('#catDialog').showModal(); $('#cd-name').focus();
+}
+$('#cd-cancel').addEventListener('click', ()=> $('#catDialog').close());
+$('#cd-save').addEventListener('click', ()=>{
+  const name = $('#cd-name').value.trim();
+  if(!name){ $('#cd-name').focus(); return; }
+  if(editingCat){
+    editingCat.name = name; editingCat.color = $('#cd-color').value; editingCat.intro = $('#cd-intro').value.trim();
+    toast('Sub-area updated');
+  }else{
+    let id = slug(name); while(model.categories.some(c=>c.id===id)) id += '-2';
+    model.categories.push({ id, name, color:$('#cd-color').value, intro:$('#cd-intro').value.trim(), concepts:[] });
+    toast('Sub-area added');
+  }
+  persist(); $('#catDialog').close(); render();
+});
+$('#cd-delete').addEventListener('click', ()=>{
+  if(!editingCat) return;
+  if(editingCat.concepts.length){
+    toast('Move or delete its '+editingCat.concepts.length+' concepts first');
+    return;
+  }
+  const del = $('#cd-delete');
+  if(!catDeleteArmed){
+    catDeleteArmed = true; del.textContent = 'Confirm delete?';
+    setTimeout(()=>{ if(catDeleteArmed){ catDeleteArmed=false; del.textContent='Delete area'; } }, 3500);
+    return;
+  }
+  model.categories = model.categories.filter(c=>c.id!==editingCat.id);
+  if(dgFilter===editingCat.id) dgFilter='all';
+  persist(); $('#catDialog').close(); render(); toast('Sub-area deleted');
+});
+
+/* ==================== DIAGRAM TAB ==================== */
+let cy = null, dgFilter = 'all', dgTag = 'all', dgOwner = 'all', dgData = 'all', edgeMode = false, edgeSrc = null, editingLink = null, pendingEdge = null;
+
+const TIER_BG = { '':'#ffffff', secondary:'#F5F4EF', other:'#EDEBE3' };
+function tierBg(t){ return TIER_BG[t||''] || '#ffffff'; }
+
+function allOwners(){
+  const s = new Set();
+  allConcepts().forEach(x=>{ const f=findConcept(x.id); const o=(f.concept.owner||'').trim(); if(o) s.add(o); });
+  return [...s].sort((a,b)=>a.localeCompare(b));
+}
+function buildOwnerFilter(){
+  const sel = $('#dgOwnerFilter');
+  const owners = allOwners();
+  if(dgOwner!=='all' && !owners.includes(dgOwner)) dgOwner = 'all';
+  sel.innerHTML = '<option value="all">all</option>' + owners.map(o=>`<option value="${o.replace(/"/g,'&quot;')}">${o}</option>`).join('');
+  sel.value = dgOwner;
+}
+$('#dgOwnerFilter').addEventListener('change', e=>{ dgOwner = e.target.value; rebuildGraph(); });
+$('#dgDataFilter').addEventListener('change', e=>{ dgData = e.target.value; rebuildGraph(); });
+
+function allTags(){
+  const s = new Set();
+  allConcepts().forEach(x=>{ const f=findConcept(x.id); (f.concept.tags||[]).forEach(t=>s.add(t)); });
+  return [...s].sort();
+}
+function buildTagFilter(){
+  const sel = $('#dgTagFilter');
+  const tags = allTags();
+  if(!tags.includes(dgTag)) dgTag = 'all';
+  sel.innerHTML = '<option value="all">all</option>' + tags.map(t=>`<option value="${t}">#${t}</option>`).join('');
+  sel.value = dgTag;
+}
+$('#dgTagFilter').addEventListener('change', e=>{ dgTag = e.target.value; rebuildGraph(); });
+
+document.querySelectorAll('.tab').forEach(t=> t.addEventListener('click', ()=>{
+  activeTab = t.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
+  $('#board').hidden = activeTab!=='board';
+  $('#diagramWrap').hidden = activeTab!=='diagram';
+  if(activeTab==='diagram') rebuildGraph();
+}));
+
+function buildFilterChips(){
+  const wrap = $('#dgFilters'); wrap.innerHTML='';
+  const mk = (id, name, color)=>{
+    const b = document.createElement('button');
+    b.className = 'chip-f' + (dgFilter===id?' active':'');
+    b.innerHTML = (color?`<span class="sw" style="--cc:${color}"></span>`:'') + name;
+    b.addEventListener('click', ()=>{ dgFilter=id; rebuildGraph(); });
+    wrap.appendChild(b);
+  };
+  mk('all','All','');
+  model.categories.forEach(c=> mk(c.id, c.name.split(' & ')[0], c.color));
+}
+
+function graphElements(){
+  let core, vis;
+  if(dgFilter==='all'){ vis = new Set(allConcepts().map(x=>x.id)); core = vis; }
+  else{
+    const cat = model.categories.find(c=>c.id===dgFilter);
+    core = new Set((cat?cat.concepts:[]).map(k=>k.id));
+    vis = new Set(core);
+    model.links.forEach(l=>{ if(core.has(l.s)) vis.add(l.t); if(core.has(l.t)) vis.add(l.s); });
+  }
+  if(dgTag!=='all'){
+    const tagged = new Set(allConcepts().filter(x=>{ const f=findConcept(x.id); return (f.concept.tags||[]).includes(dgTag); }).map(x=>x.id));
+    vis = new Set([...vis].filter(id=>tagged.has(id)));
+  }
+  if(dgOwner!=='all'){
+    const owned = new Set(allConcepts().filter(x=>{ const f=findConcept(x.id); return (f.concept.owner||'').trim()===dgOwner; }).map(x=>x.id));
+    vis = new Set([...vis].filter(id=>owned.has(id)));
+  }
+  if(dgData!=='all'){
+    const dc = new Set(allConcepts().filter(x=>{ const f=findConcept(x.id); return (f.concept.dataCategory||'')===dgData; }).map(x=>x.id));
+    vis = new Set([...vis].filter(id=>dc.has(id)));
+  }
+  const nodes = allConcepts().filter(x=>vis.has(x.id)).map(x=>{
+    const f = findConcept(x.id);
+    return { data:{ id:x.id, label:x.name, color:x.color, ghost: core.has(x.id)?0:1, bg: tierBg(f.concept.tier) },
+             position: f.concept.pos ? {...f.concept.pos} : undefined };
+  });
+  const edges = model.links.filter(l=>vis.has(l.s)&&vis.has(l.t)).map((l,i)=>({
+    data:{ id:'e'+i, source:l.s, target:l.t, label:l.label||'', kind:l.kind, _s:l.s, _t:l.t }
+  }));
+  return { nodes, edges };
+}
+
+function rebuildGraph(){
+  buildFilterChips();
+  buildTagFilter();
+  buildOwnerFilter();
+  if(typeof cytoscape==='undefined'){
+    $('#cyMsg').hidden=false;
+    $('#cyMsg').textContent='Diagram library could not load (no network access to the CDN). The concept board remains fully functional.';
+    return;
+  }
+  $('#cyMsg').hidden=true;
+  const els = graphElements();
+  const needsLayout = els.nodes.some(n=>!n.position);
+  if(cy){ cy.destroy(); cy=null; }
+  cy = cytoscape({
+    container: $('#cy'),
+    elements: els,
+    wheelSensitivity: 0.2,
+    style: [
+      { selector:'node', style:{
+        'shape':'round-rectangle','background-color':'data(bg)','border-width':2,'border-color':'data(color)',
+        'label':'data(label)','color':'#22272C','font-family':'IBM Plex Sans, sans-serif','font-size':11,
+        'text-wrap':'wrap','text-max-width':110,'text-valign':'center','text-halign':'center',
+        'width': ele => { const l=(ele.data('label')||'').length; return l>17 ? 112 : Math.max(40, l*6.5); },
+        'height': ele => 13 * Math.max(1, Math.ceil((ele.data('label')||'').length / 17)),
+        'padding':'10px'
+      }},
+      { selector:'node[ghost = 1]', style:{ 'opacity':0.5,'border-style':'dashed' }},
+      { selector:'node.edge-src', style:{ 'border-width':4,'border-color':'#22272C' }},
+      { selector:'node:selected', style:{ 'border-width':4,'border-color':'#22272C' }},
+      { selector:'edge', style:{
+        'curve-style':'bezier','width':1.5,'line-color':'#8A8778','line-style':'dashed',
+        'label':'data(label)','font-size':9,'font-family':'IBM Plex Mono, monospace','color':'#5A6068',
+        'text-background-color':'#ffffff','text-background-opacity':0.85,'text-background-padding':2,'text-rotation':'autorotate'
+      }},
+      { selector:'edge[kind = "hierarchy"]', style:{
+        'line-style':'solid','width':2,'line-color':'#22272C',
+        'target-arrow-shape':'triangle','target-arrow-color':'#22272C','arrow-scale':0.9
+      }},
+      { selector:'edge:selected', style:{ 'line-color':'#A3341F','target-arrow-color':'#A3341F','width':3 }},
+      { selector:'.dg-hidden', style:{ 'display':'none' }}
+    ],
+    layout: needsLayout
+      ? { name:'cose', animate:false, nodeRepulsion:9000, idealEdgeLength:110, padding:30 }
+      : { name:'preset', padding:30 }
+  });
+  if(needsLayout) cy.one('layoutstop', savePositions);
+  cy.on('dragfree','node', ()=> savePositions());
+  cy.on('tap','node', evt=>{
+    const id = evt.target.id();
+    if(edgeMode){
+      if(!edgeSrc){ edgeSrc=id; evt.target.addClass('edge-src'); }
+      else if(edgeSrc!==id){ openEdgeDialog({ mode:'new', s:edgeSrc, t:id }); exitEdgeMode(); }
+      return;
+    }
+    select(id);
+  });
+  cy.on('tap','edge', evt=>{
+    if(edgeMode) return;
+    const d = evt.target.data();
+    const link = model.links.find(l=>l.s===d._s && l.t===d._t);
+    if(link) openEdgeDialog({ mode:'edit', link });
+  });
+  cy.on('tap', evt=>{
+    if(evt.target===cy){
+      if(edgeMode){ exitEdgeMode(); return; }
+      if(selectedId) closePanel();
+    }
+  });
+  applyFocus();
+}
+
+/* focus mode: with a selection, show only the selected box and its direct neighbors */
+let hierOnly = false;
+$('#dgHierOnly').addEventListener('click', ()=>{
+  hierOnly = !hierOnly;
+  $('#dgHierOnly').style.background = hierOnly ? '#22272C' : '';
+  $('#dgHierOnly').style.color = hierOnly ? '#F5F4EF' : '';
+  applyFocus();
+});
+function applyFocus(){
+  if(!cy) return;
+  cy.batch(()=>{
+    cy.elements().removeClass('dg-hidden');
+    if(hierOnly) cy.edges('[kind = "association"]').addClass('dg-hidden');
+    if(!selectedId) return;
+    const sel = cy.$id(selectedId);
+    if(!sel.length) return;
+    let vis;
+    if(hierOnly){
+      vis = sel.connectedEdges('[kind = "hierarchy"]').connectedNodes().union(sel);
+    }else{
+      vis = sel.closedNeighborhood().nodes();
+    }
+    const visIds = new Set(vis.map(x=>x.id()));
+    cy.nodes().not(vis).addClass('dg-hidden');
+    cy.edges().forEach(e=>{
+      if(!visIds.has(e.data('source')) || !visIds.has(e.data('target'))) e.addClass('dg-hidden');
+    });
+  });
+}
+
+function savePositions(){
+  if(!cy) return;
+  cy.nodes().forEach(n=>{
+    const f = findConcept(n.id());
+    if(f){ const p = n.position(); f.concept.pos = { x:Math.round(p.x), y:Math.round(p.y) }; }
+  });
+  persist();
+}
+
+/* --- add concept from diagram --- */
+$('#dgAddNode').addEventListener('click', ()=>{
+  const sel = $('#nd-cat'); sel.innerHTML='';
+  model.categories.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+  if(dgFilter!=='all') sel.value = dgFilter;
+  $('#nd-name').value='';
+  $('#nodeDialog').showModal(); $('#nd-name').focus();
+});
+$('#nd-cancel').addEventListener('click', ()=> $('#nodeDialog').close());
+$('#nd-create').addEventListener('click', ()=>{
+  const name = $('#nd-name').value.trim(); if(!name){ $('#nd-name').focus(); return; }
+  const cat = model.categories.find(c=>c.id===$('#nd-cat').value);
+  let id = slug(name); while(findConcept(id)) id += '-2';
+  const center = cy ? { x:Math.round((cy.extent().x1+cy.extent().x2)/2), y:Math.round((cy.extent().y1+cy.extent().y2)/2) } : {x:0,y:0};
+  cat.concepts.push({ id, name, definition:'', characteristics:'', relations:[], standards:'—', pos:center });
+  $('#nodeDialog').close();
+  persist(); render(); select(id);
+  toast('Added to '+cat.name+' — card created');
+});
+
+/* --- connector mode & editing --- */
+function exitEdgeMode(){ edgeMode=false; edgeSrc=null; $('#dgAddEdge').style.background=''; $('#dgAddEdge').style.color=''; if(cy) cy.nodes().removeClass('edge-src'); }
+$('#dgAddEdge').addEventListener('click', ()=>{
+  if(edgeMode){ exitEdgeMode(); return; }
+  edgeMode=true; edgeSrc=null;
+  $('#dgAddEdge').style.background='#22272C'; $('#dgAddEdge').style.color='#F5F4EF';
+  toast('Click a source box, then a target box');
+});
+
+function fillEndSelect(sel, chosen){
+  sel.innerHTML='';
+  model.categories.forEach(c=>{
+    const og = document.createElement('optgroup'); og.label = c.name;
+    c.concepts.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(k=>{
+      const o = document.createElement('option'); o.value=k.id; o.textContent=k.name;
+      if(k.id===chosen) o.selected=true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+}
+
+function openEdgeDialog(ctx){
+  editingLink = ctx.mode==='edit' ? ctx.link : null;
+  pendingEdge = ctx.mode==='new' ? { s:ctx.s, t:ctx.t } : null;
+  const s = editingLink?editingLink.s:pendingEdge.s, t = editingLink?editingLink.t:pendingEdge.t;
+  $('#ed-title').textContent = editingLink ? 'Edit connector' : 'New connector';
+  fillEndSelect($('#ed-src'), s);
+  fillEndSelect($('#ed-tgt'), t);
+  $('#ed-kind').value = editingLink ? editingLink.kind : 'association';
+  $('#ed-label').value = editingLink ? (editingLink.label||'') : '';
+  $('#ed-delete').style.display = editingLink ? '' : 'none';
+  $('#edgeDialog').showModal();
+}
+$('#ed-swap').addEventListener('click', ()=>{
+  const a = $('#ed-src').value, b = $('#ed-tgt').value;
+  $('#ed-src').value = b; $('#ed-tgt').value = a;
+});
+$('#ed-cancel').addEventListener('click', ()=> $('#edgeDialog').close());
+$('#ed-save').addEventListener('click', ()=>{
+  const ns = $('#ed-src').value, nt = $('#ed-tgt').value;
+  if(ns===nt){ toast('Source and target must be different concepts'); return; }
+  const kind = $('#ed-kind').value, label = $('#ed-label').value.trim();
+  const dup = model.links.find(l=>l!==editingLink && pairKey(l.s,l.t)===pairKey(ns,nt));
+  if(dup){
+    dup.s=ns; dup.t=nt; dup.kind=kind; dup.label=label;
+    if(editingLink) model.links = model.links.filter(l=>l!==editingLink);
+    toast('Merged into the existing connector between these two');
+  }else if(editingLink){
+    editingLink.s=ns; editingLink.t=nt; editingLink.kind=kind; editingLink.label=label;
+    toast('Connector saved');
+  }else{
+    model.links.push({ s:ns, t:nt, kind, label });
+    if(Array.isArray(model.removedLinks)) model.removedLinks = model.removedLinks.filter(k=>k!==pairKey(ns,nt));
+    toast('Connector saved');
+  }
+  syncRelations(); persist(); $('#edgeDialog').close();
+  render(); if(selectedId) select(selectedId);
+});
+$('#ed-delete').addEventListener('click', ()=>{
+  if(editingLink){ removeLinkBetween(editingLink.s, editingLink.t); persist(); render(); }
+  $('#edgeDialog').close(); toast('Connector deleted');
+});
+
+$('#dgArrange').addEventListener('click', ()=>{
+  if(!cy) return;
+  const l = cy.layout({ name:'cose', animate:false, nodeRepulsion:9000, idealEdgeLength:110, padding:30 });
+  cy.one('layoutstop', ()=>{ savePositions(); cy.fit(undefined, 40); });
+  l.run();
+});
+$('#dgFit').addEventListener('click', ()=>{ if(cy) cy.fit(undefined, 40); });
+
+restore().then(()=>{ migrate(); render(); });
+</script>
+</body>
+</html>
