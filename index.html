@@ -331,6 +331,7 @@
     body{background:#fff;}
     .band{break-inside:avoid;}
   }
+  #unlockBtn.primary{background:var(--ink); color:var(--paper);}
 </style>
 </head>
 <body>
@@ -358,6 +359,8 @@
     <input type="file" id="importFile" accept=".json,application/json" hidden>
     <button class="btn" id="printBtn">Print / PDF</button>
     <button class="btn ai" id="aiBtn">✦ AI assist</button>
+    <button class="btn" id="unlockBtn">🔒 Unlock editing</button>
+    <button class="btn primary" id="syncBtn" hidden>⇪ Sync to GitHub</button>
     <span class="hint">Click a concept to inspect &amp; edit · related concepts light up</span>
   </div>
   <nav class="tabs" aria-label="Views">
@@ -694,10 +697,39 @@ const STATUS_META = { green:['●','#2E7D3A','accepted'], yellow:['●','#D9A400
 document.getElementById('tbDate').textContent = new Date().toISOString().slice(0,10);
 
 /* ---------- persistence (best effort; falls back to in-memory) ---------- */
+let modelDirty = false;
 async function persist(){
+  modelDirty = true;
+  try{ localStorage.setItem('eim-model', JSON.stringify(model)); }catch(e){}
   try{ if(window.storage) await window.storage.set('eim-model', JSON.stringify(model)); }catch(e){}
+  updateSyncBtn();
 }
 async function restore(){
+  try{
+    // canonical copy published alongside this page (e.g. via GitHub Pages) takes priority
+    const res = await fetch('data.json', {cache:'no-store'});
+    if(res.ok){
+      const remote = await res.json();
+      if(remote && Array.isArray(remote.categories)){
+        model = remote;
+        mergeSeed();
+        return;
+      }
+    }
+  }catch(e){}
+  try{
+    const local = localStorage.getItem('eim-model');
+    if(local){
+      const stored = JSON.parse(local);
+      if((stored.seedVersion||1) < (SEED.seedVersion||1)){
+        model = JSON.parse(JSON.stringify(SEED));
+      }else{
+        model = stored;
+        mergeSeed();
+      }
+      return;
+    }
+  }catch(e){}
   try{
     if(window.storage){
       const r = await window.storage.get('eim-model');
@@ -1528,7 +1560,142 @@ $('#dgArrange').addEventListener('click', ()=>{
 });
 $('#dgFit').addEventListener('click', ()=>{ if(cy) cy.fit(undefined, 40); });
 
-restore().then(()=>{ migrate(); render(); });
+/* ---------- edit-mode PIN gate + GitHub sync ---------- */
+const EDIT_PIN = '2468';
+const GH_OWNER = 'gagay5';
+const GH_REPO = 'centres-info-model';
+const GH_BRANCH = 'main';
+const GH_PATH = 'data.json';
+
+let editUnlocked = (sessionStorage.getItem('eim-unlocked') === '1');
+
+function setBoardEditable(on){
+  document.body.classList.toggle('edit-locked', !on);
+  document.querySelectorAll('.add-card, .add-cat, .cat-edit').forEach(el=>{
+    el.style.display = on ? '' : 'none';
+  });
+}
+
+function updateUnlockBtn(){
+  const b = $('#unlockBtn');
+  b.textContent = editUnlocked ? '🔓 Editing unlocked' : '🔒 Unlock editing';
+  b.classList.toggle('primary', editUnlocked);
+  $('#syncBtn').hidden = !editUnlocked;
+  setBoardEditable(editUnlocked);
+}
+
+function updateSyncBtn(){
+  const b = $('#syncBtn');
+  if(!editUnlocked) return;
+  b.textContent = modelDirty ? '⇪ Sync to GitHub (unsaved changes)' : '⇪ Sync to GitHub';
+}
+
+$('#unlockBtn').addEventListener('click', ()=>{
+  if(editUnlocked){
+    editUnlocked = false;
+    sessionStorage.removeItem('eim-unlocked');
+    updateUnlockBtn();
+    toast('Editing locked');
+    return;
+  }
+  const entered = prompt('Enter PIN to unlock editing:');
+  if(entered === null) return;
+  if(entered.trim() === EDIT_PIN){
+    editUnlocked = true;
+    sessionStorage.setItem('eim-unlocked','1');
+    updateUnlockBtn();
+    updateSyncBtn();
+    toast('Editing unlocked');
+  }else{
+    toast('Incorrect PIN');
+  }
+});
+
+function b64EncodeUtf8(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function githubRequest(url, options){
+  const res = await fetch(url, options);
+  let body = null;
+  try{ body = await res.json(); }catch(e){}
+  return { ok: res.ok, status: res.status, body };
+}
+
+async function syncToGitHub(){
+  if(!editUnlocked) return;
+  let pat = localStorage.getItem('eim-gh-pat');
+  if(!pat){
+    pat = prompt('Enter a GitHub personal access token (repo scope) to push changes.\nIt will be remembered in this browser only.');
+    if(!pat) return;
+    localStorage.setItem('eim-gh-pat', pat.trim());
+    pat = pat.trim();
+  }
+  const btn = $('#syncBtn');
+  const prevText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  try{
+    const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}`;
+    const headers = {
+      'Authorization': `Bearer ${pat}`,
+      'Accept': 'application/vnd.github+json'
+    };
+    const getRes = await githubRequest(apiUrl, { headers });
+    let sha = undefined;
+    if(getRes.status === 200 && getRes.body && getRes.body.sha){
+      sha = getRes.body.sha;
+    }else if(getRes.status === 401){
+      toast('GitHub sync failed: invalid or expired token');
+      localStorage.removeItem('eim-gh-pat');
+      return;
+    }else if(getRes.status !== 404){
+      toast('GitHub sync failed: could not read current file (status '+getRes.status+')');
+      return;
+    }
+    const putBody = {
+      message: 'Update data.json from EIM concept board',
+      content: b64EncodeUtf8(JSON.stringify(model, null, 2)),
+      branch: GH_BRANCH
+    };
+    if(sha) putBody.sha = sha;
+    let putRes = await githubRequest(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(putBody)
+    });
+    if(putRes.status === 409 || putRes.status === 422){
+      // sha likely changed underneath us — refetch and retry once
+      const retryGet = await githubRequest(apiUrl, { headers });
+      if(retryGet.status === 200 && retryGet.body && retryGet.body.sha){
+        putBody.sha = retryGet.body.sha;
+        putRes = await githubRequest(apiUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify(putBody)
+        });
+      }
+    }
+    if(putRes.ok){
+      modelDirty = false;
+      updateSyncBtn();
+      toast('Synced to GitHub');
+    }else if(putRes.status === 401){
+      toast('GitHub sync failed: invalid or expired token');
+      localStorage.removeItem('eim-gh-pat');
+    }else{
+      toast('GitHub sync failed (status '+putRes.status+')');
+    }
+  }catch(e){
+    toast('GitHub sync failed: network error');
+  }finally{
+    btn.disabled = false;
+    updateSyncBtn();
+    if(btn.textContent === 'Syncing…') btn.textContent = prevText;
+  }
+}
+$('#syncBtn').addEventListener('click', syncToGitHub);
+
+restore().then(()=>{ migrate(); render(); updateUnlockBtn(); updateSyncBtn(); });
 </script>
 </body>
 </html>
