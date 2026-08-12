@@ -374,6 +374,21 @@
           "tags": [],
           "status": "green",
           "owner": ""
+        },
+        {
+          "id": "change-artem",
+          "name": "Change Artem",
+          "definition": "",
+          "characteristics": "",
+          "relations": [],
+          "standards": "—",
+          "finalDefinition": "",
+          "tier": "",
+          "tags": [],
+          "status": "",
+          "owner": "",
+          "sor": "",
+          "dataCategory": ""
         }
       ]
     },
